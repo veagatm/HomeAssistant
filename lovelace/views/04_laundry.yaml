@@ -1,0 +1,139 @@
+title: Laundry
+path: laundry
+icon: mdi:washing-machine
+cards:
+
+  # ── Live status ─────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Laundry Status
+    subtitle: Vibration sensors on washer (1), dryer (2), bed frame (3)
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Washer
+        secondary: >
+          {% if is_state('binary_sensor.vibration_sensor_1_vibration', 'on') %}
+            🔄 Running
+          {% else %}
+            {% set started = states('input_datetime.washer_started_at') %}
+            {% if started not in ('unknown', 'unavailable') %}
+              done · started {{ as_datetime(started) | as_local | as_timestamp | timestamp_custom('%-I:%M %p') }}
+            {% else %}idle{% endif %}
+          {% endif %}
+        icon: mdi:washing-machine
+        icon_color: >
+          {{ 'blue' if is_state('binary_sensor.vibration_sensor_1_vibration', 'on') else 'grey' }}
+      - type: custom:mushroom-template-card
+        primary: Dryer
+        secondary: >
+          {% if is_state('binary_sensor.vibration_sensor_2_vibration', 'on') %}
+            🌀 Running
+          {% else %}
+            {% set started = states('input_datetime.dryer_started_at') %}
+            {% if started not in ('unknown', 'unavailable') %}
+              done · started {{ as_datetime(started) | as_local | as_timestamp | timestamp_custom('%-I:%M %p') }}
+            {% else %}idle{% endif %}
+          {% endif %}
+        icon: mdi:tumble-dryer
+        icon_color: >
+          {{ 'orange' if is_state('binary_sensor.vibration_sensor_2_vibration', 'on') else 'grey' }}
+
+  # Timestamps
+  - type: entities
+    title: Cycle Timestamps
+    entities:
+      - entity: input_datetime.washer_started_at
+        name: Washer started at
+        icon: mdi:washing-machine
+      - entity: input_datetime.dryer_started_at
+        name: Dryer started at
+        icon: mdi:tumble-dryer
+
+  # ── Alert toggles ───────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Alert Settings
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automation_washer_alert
+        name: Washer Alert
+        icon: mdi:washing-machine
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automation_dryer_alert
+        name: Dryer Alert
+        icon: mdi:tumble-dryer
+
+  # ── Snooze controls ─────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    subtitle: Snooze washer alert
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: 30 min
+        secondary: >
+          {% set ts = state_attr('input_datetime.snooze_washer_alert', 'timestamp') %}
+          {% if ts and ts > now().timestamp() %}
+            until {{ ts | timestamp_custom('%-I:%M %p') }}
+          {% else %}active{% endif %}
+        icon: mdi:alarm-snooze
+        icon_color: >
+          {% set ts = state_attr('input_datetime.snooze_washer_alert', 'timestamp') %}
+          {{ 'orange' if ts and ts > now().timestamp() else 'green' }}
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: washer_alert, duration_minutes: 30 }
+      - type: custom:mushroom-template-card
+        primary: 2 hrs
+        icon: mdi:alarm-snooze
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: washer_alert, duration_minutes: 120 }
+      - type: custom:mushroom-template-card
+        primary: Clear
+        icon: mdi:alarm-off
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.clear_snooze
+          service_data: { snooze_id: washer_alert }
+
+  - type: custom:mushroom-title-card
+    subtitle: Snooze dryer alert
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: 30 min
+        secondary: >
+          {% set ts = state_attr('input_datetime.snooze_dryer_alert', 'timestamp') %}
+          {% if ts and ts > now().timestamp() %}
+            until {{ ts | timestamp_custom('%-I:%M %p') }}
+          {% else %}active{% endif %}
+        icon: mdi:alarm-snooze
+        icon_color: >
+          {% set ts = state_attr('input_datetime.snooze_dryer_alert', 'timestamp') %}
+          {{ 'orange' if ts and ts > now().timestamp() else 'green' }}
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: dryer_alert, duration_minutes: 30 }
+      - type: custom:mushroom-template-card
+        primary: 2 hrs
+        icon: mdi:alarm-snooze
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: dryer_alert, duration_minutes: 120 }
+      - type: custom:mushroom-template-card
+        primary: Clear
+        icon: mdi:alarm-off
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.clear_snooze
+          service_data: { snooze_id: dryer_alert }

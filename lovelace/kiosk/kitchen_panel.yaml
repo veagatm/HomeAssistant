@@ -1,0 +1,315 @@
+title: Kitchen Panel
+views:
+  - title: Panel
+    path: default
+    panel: true
+    theme: kiosk_dark
+    background: '#0d1117'
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 38fr 62fr
+          grid-template-rows: auto 1fr
+          height: "calc(100vh - var(--header-height, 56px))"
+          gap: 8px
+          padding: 10px
+          box-sizing: border-box
+        cards:
+
+          # ══ STATUS BAR — spans both columns ══════════════════════════════════
+          - type: custom:mushroom-chips-card
+            alignment: center
+            view_layout:
+              grid-column: 1 / -1
+            chips:
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.riley_hollis', 'home') else 'red' }}
+                content: >
+                  Riley · {{ 'Home' if is_state('person.riley_hollis', 'home') else 'Away' }}
+                tap_action:
+                  action: none
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.cassandra_quinlan', 'home') else 'red' }}
+                content: >
+                  Casey · {{ 'Home' if is_state('person.cassandra_quinlan', 'home') else 'Away' }}
+                tap_action:
+                  action: none
+              - type: template
+                icon: mdi:clock-outline
+                icon_color: blue
+                content: >
+                  {{ now().strftime('%-I:%M %p') }}  ·  {{ now().strftime('%a %b %-d') }}
+                tap_action:
+                  action: none
+              - type: template
+                icon: mdi:flash
+                icon_color: >
+                  {{ 'red' if states('sensor.breaker_panel_watts') | int > 2000 else 'amber' }}
+                content: >
+                  {{ states('sensor.breaker_panel_watts') | int }} W
+                tap_action:
+                  action: none
+              - type: template
+                icon: mdi:cast
+                icon_color: blue
+                content: Cast
+                tap_action:
+                  action: call-service
+                  service: script.cast_kitchen_panel
+
+          # ══ LEFT COLUMN (38%) ════════════════════════════════════════════════
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1
+              grid-row: 2
+            cards:
+
+              # ── INDUSTRY STRIP ───────────────────────────────────────────────
+              - type: custom:mushroom-template-card
+                primary: Industry — Max
+                secondary: >
+                  {{ 'Now casting on Nest Hub' if is_state('media_player.kitchen_speaker', 'playing') else 'Tap to cast · Hold to stop' }}
+                icon: mdi:television-play
+                icon_color: >
+                  {{ 'deep-purple' if is_state('media_player.kitchen_speaker', 'playing') else 'purple' }}
+                layout: horizontal
+                tap_action:
+                  action: call-service
+                  service: script.cast_industry_hbo
+                hold_action:
+                  action: call-service
+                  service: media_player.turn_off
+                  target:
+                    entity_id: media_player.kitchen_speaker
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(110, 64, 201, 0.12) !important;
+                      border: 1px solid rgba(110, 64, 201, 0.45) !important;
+                    }
+
+              # ── KITCHEN ──────────────────────────────────────────────────────
+              - type: custom:mushroom-light-card
+                entity: light.kitchen
+                name: Kitchen
+                show_brightness_control: true
+                show_color_temp_control: true
+                show_color_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-left: 3px solid #e3b341 !important;
+                    }
+
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-light-card
+                    entity: light.lightstrip
+                    name: Counter Strip
+                    show_brightness_control: true
+                    show_color_temp_control: true
+                    show_color_control: true
+                    collapsible_controls: true
+                  - type: custom:mushroom-light-card
+                    entity: light.kitchen_1
+                    name: Ceiling
+                    show_brightness_control: true
+                    show_color_temp_control: true
+                    show_color_control: true
+                    collapsible_controls: true
+
+              - type: custom:mushroom-entity-card
+                entity: media_player.kitchen_speaker
+                name: Kitchen Speaker
+                icon: mdi:speaker
+
+              # ── LIVING ROOM ───────────────────────────────────────────────────
+              - type: custom:mushroom-light-card
+                entity: light.living_room
+                name: Living Room
+                show_brightness_control: true
+                show_color_temp_control: true
+                show_color_control: true
+                collapsible_controls: true
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-left: 3px solid #58a6ff !important;
+                    }
+
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-light-card
+                    entity: light.lamp
+                    name: Lamp
+                    show_brightness_control: true
+                    show_color_temp_control: true
+                    show_color_control: true
+                    collapsible_controls: true
+                  - type: custom:mushroom-light-card
+                    entity: light.tv_light
+                    name: TV Strip
+                    show_brightness_control: true
+                    show_color_temp_control: true
+                    show_color_control: true
+                    collapsible_controls: true
+
+              - type: custom:mushroom-media-player-card
+                entity: media_player.roku_ultra
+                name: Roku Ultra
+                use_media_info: true
+                collapsible_controls: true
+
+              # ── SNOOZE ROW (both rooms) ───────────────────────────────────────
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Snooze Kitchen
+                    icon: mdi:pause-circle-outline
+                    icon_color: grey
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: script.snooze_automation
+                      service_data:
+                        snooze_id: kit_motion
+                        duration_minutes: 30
+                  - type: custom:mushroom-template-card
+                    primary: Snooze Living Room
+                    icon: mdi:pause-circle-outline
+                    icon_color: grey
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: script.snooze_automation
+                      service_data:
+                        snooze_id: lr_motion
+                        duration_minutes: 30
+
+          # ══ RIGHT COLUMN (62%) ══════════════════════════════════════════════
+          - type: vertical-stack
+            view_layout:
+              grid-column: 2
+              grid-row: 2
+            cards:
+
+              # ── CAMERAS side-by-side ──────────────────────────────────────────
+              - type: horizontal-stack
+                cards:
+                  - type: picture-entity
+                    entity: camera.front_yard_fluent
+                    camera_view: auto
+                    name: Front Yard
+                    show_state: false
+                    show_name: true
+                    card_mod:
+                      style: |
+                        ha-card {
+                          height: 185px;
+                          overflow: hidden;
+                        }
+                  - type: picture-entity
+                    entity: camera.backyard_fluent
+                    camera_view: auto
+                    name: Backyard
+                    show_state: false
+                    show_name: true
+                    card_mod:
+                      style: |
+                        ha-card {
+                          height: 185px;
+                          overflow: hidden;
+                        }
+
+              # Panoramic dual-lens camera (7680x2160 native) — full-width, shorter
+              # height since the native aspect ratio is much wider/shorter than the
+              # two cameras above.
+              - type: picture-entity
+                entity: camera.front_yard_floodlight_fluent
+                camera_view: auto
+                name: Front Yard Floodlight
+                show_state: false
+                show_name: true
+                card_mod:
+                  style: |
+                    ha-card {
+                      height: 140px;
+                      overflow: hidden;
+                    }
+
+              # ── SOIL MOISTURE + SPARKLINES ────────────────────────────────────
+              - type: custom:mushroom-title-card
+                title: Soil Moisture
+                subtitle: 7-day trend
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-left: 3px solid #39d353 !important;
+                    }
+
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: sensor.fescue_grass_soil_moisture_soil_moisture
+                    name: Fescue Grass
+                name: Fescue Grass
+                icon: mdi:grass
+                hours_to_show: 168
+                points_per_hour: 0.5
+                line_color: "#39d353"
+                lower_bound: 0
+                upper_bound: 100
+                height: 55
+                show:
+                  graph: line
+                  fill: true
+                  points: false
+                  legend: false
+                  name: true
+                  state: true
+                  labels: false
+
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: sensor.green_giant_soil_sensor_soil_moisture
+                    name: Green Giant
+                icon: mdi:pine-tree
+                hours_to_show: 168
+                points_per_hour: 0.5
+                line_color: "#39d353"
+                lower_bound: 0
+                upper_bound: 100
+                height: 55
+                show:
+                  graph: line
+                  fill: true
+                  points: false
+                  legend: false
+                  name: true
+                  state: true
+                  labels: false
+
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: sensor.indoor_tree_soil_moisture_soil_moisture
+                    name: Indoor Tree
+                icon: mdi:tree
+                hours_to_show: 168
+                points_per_hour: 0.5
+                line_color: "#3fb950"
+                lower_bound: 0
+                upper_bound: 100
+                height: 55
+                show:
+                  graph: line
+                  fill: true
+                  points: false
+                  legend: false
+                  name: true
+                  state: true
+                  labels: false

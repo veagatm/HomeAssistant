@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design 8 — Mosaic (v3)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0d1117; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Roboto Mono', monospace;
+  color: #c9d1d9;
+  display: grid;
+  grid-template-columns: 38fr 62fr;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* ═══ LEFT COLUMN ════════════════════════════════════════ */
+.left-col {
+  display: flex; flex-direction: column; gap: 7px; min-height: 0; overflow: hidden;
+}
+
+/* STATUS CARD */
+.info-card {
+  background: #161b22; border-radius: 10px; border: 1px solid #30363d;
+  padding: 11px 13px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.clock-row { display: flex; align-items: baseline; gap: 5px; }
+.clock-big { font-size: 32px; font-weight: 700; color: #f0f6fc; letter-spacing: 0.5px; line-height: 1; }
+.clock-ampm { font-size: 12px; color: #484f58; }
+.clock-date { font-size: 9.5px; color: #484f58; margin-top: 1px; }
+.persons { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.person-card {
+  background: #0d1117; border-radius: 7px; padding: 5px 8px;
+  border: 1px solid #21262d; display: flex; align-items: center; gap: 6px;
+}
+.av { width: 22px; height: 22px; border-radius: 50%; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+.avl { background: #1f6feb; } .avm { background: #8b5cf6; }
+.pn { font-size: 11px; font-weight: 700; color: #e6edf3; }
+.phome { font-size: 9px; color: #3fb950; font-weight: 600; }
+.paway { font-size: 9px; color: #f85149; font-weight: 600; }
+.bot-row { display: flex; gap: 5px; }
+.pw-chip { flex: 1; background: #0d1117; border-radius: 6px; border: 1px solid #21262d; padding: 5px 9px; }
+.pw-val { font-size: 14px; font-weight: 800; color: #e3b341; }
+.pw-lbl { font-size: 8px; color: #484f58; text-transform: uppercase; letter-spacing: 0.6px; }
+.cast-btn { flex: 1; background: #1f6feb; color: white; border-radius: 6px; padding: 5px 9px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #388bfd; display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+/* INDUSTRY STRIP — above kitchen */
+.industry-strip {
+  background: #160d28; border-radius: 10px;
+  border: 1px solid #6e40c9;
+  padding: 9px 13px;
+  display: flex; align-items: center; gap: 11px;
+  flex-shrink: 0; cursor: pointer;
+  box-shadow: 0 0 20px rgba(110,64,201,0.15);
+}
+.ind-ico { font-size: 22px; }
+.ind-label { flex: 1; }
+.ind-n { font-size: 13px; font-weight: 800; color: #a371f7; }
+.ind-sub { font-size: 9.5px; color: #6e40c9; margin-top: 1px; }
+.ind-action {
+  background: #6e40c9; color: white;
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+}
+
+/* ROOM CARDS */
+.card {
+  background: #161b22; border-radius: 10px; border: 1px solid #30363d;
+  padding: 10px 12px; display: flex; flex-direction: column; min-height: 0;
+}
+.card-grow { flex: 1; overflow: hidden; }
+
+.ch {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+  padding-bottom: 7px; margin-bottom: 8px; border-bottom: 1px solid #21262d;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-shrink: 0;
+}
+.ck { color: #e3b341; } .clr { color: #58a6ff; }
+.csub { font-size: 8.5px; color: #484f58; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* LIGHT ROW */
+.lrow { display: flex; align-items: center; gap: 7px; padding: 3px 0; font-size: 11.5px; flex-shrink: 0; }
+.lic { font-size: 12px; width: 15px; }
+.ln { flex: 1; color: #8b949e; }
+.lp { font-weight: 700; }
+.yk { color: #e3b341; } .yb { color: #58a6ff; } .yp { color: #a371f7; } .yo { color: #484f58; }
+.tog { width: 30px; height: 17px; border-radius: 9px; position: relative; flex-shrink: 0; }
+.tok { background: #5a4a00; border: 1px solid #e3b341; }
+.tob { background: #0d2040; border: 1px solid #58a6ff; }
+.tf { background: #21262d; border: 1px solid #30363d; }
+.tog::after { content: ''; width: 13px; height: 13px; border-radius: 50%; background: white; position: absolute; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+.tok::after { left: 15px; } .tob::after { left: 15px; } .tf::after { left: 2px; }
+
+.btrack { height: 3px; background: #21262d; border-radius: 2px; margin: 4px 0 7px; flex-shrink: 0; }
+.bk { height: 100%; border-radius: 2px; background: #e3b341; }
+.bb { height: 100%; border-radius: 2px; background: #58a6ff; }
+
+/* COLOR SWATCHES */
+.color-row {
+  display: flex; align-items: center; gap: 5px;
+  margin-bottom: 7px; flex-shrink: 0;
+}
+.color-label { font-size: 8.5px; color: #484f58; margin-right: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.csw {
+  width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  flex-shrink: 0; transition: transform 0.1s;
+}
+.csw.active { border-color: rgba(255,255,255,0.5); transform: scale(1.2); }
+.warm { background: #ffcc66; }
+.natural { background: #ffe8c8; }
+.cool { background: #cce0ff; }
+.red { background: #ff4455; }
+.blue { background: #4488ff; }
+.purple { background: #aa44ff; }
+.color-wheel {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+  cursor: pointer; flex-shrink: 0; margin-left: 2px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  position: relative;
+}
+.color-wheel::after { content: '⟳'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 900; text-shadow: 0 0 3px rgba(0,0,0,0.8); }
+.hold-hint { font-size: 8px; color: #30363d; margin-left: auto; }
+
+/* MINI PAIR */
+.mini-g { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 6px; flex-shrink: 0; }
+.mini { background: #0d1117; border-radius: 6px; padding: 5px 7px; border: 1px solid #21262d; }
+.mln { font-size: 8.5px; color: #484f58; margin-bottom: 1px; }
+.mls { font-size: 11px; font-weight: 700; }
+
+/* MEDIA ROW */
+.mrow {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 8px; background: #0d1117; border-radius: 6px;
+  border: 1px solid #21262d; font-size: 11px; margin-bottom: 6px; flex-shrink: 0;
+}
+.mic { font-size: 12px; }
+.mname { flex: 1; color: #8b949e; }
+.mstate { color: #484f58; font-size: 9.5px; }
+
+/* SNOOZE BUTTON */
+.snooze-btn {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+  padding: 5px 10px; font-size: 9.5px; color: #484f58; cursor: pointer;
+  margin-top: auto; flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+.snooze-btn:hover { border-color: #484f58; color: #8b949e; }
+.snooze-ico { font-size: 11px; }
+
+/* ═══ RIGHT COLUMN ═══════════════════════════════════════ */
+.right-col {
+  display: flex; flex-direction: column; gap: 7px; min-height: 0; overflow: hidden;
+}
+
+/* CAMERAS */
+.cams-card {
+  flex: 3; min-height: 0; overflow: hidden;
+  background: #161b22; border-radius: 10px; border: 1px solid #30363d;
+  padding: 10px 12px; display: flex; flex-direction: column;
+}
+.cams-wrap { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.cam {
+  flex: 1; min-height: 0; border-radius: 8px; background: #080b10;
+  border: 1px solid #21262d; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cam::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 45% 35%, #0d1e35 0%, #040810 75%); }
+.cam-glyph { position: relative; z-index: 1; font-size: 36px; opacity: 0.07; }
+.cam-name { position: absolute; bottom: 7px; left: 9px; z-index: 2; font-size: 9px; color: #484f58; background: rgba(0,0,0,0.75); padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+.cam-live { position: absolute; top: 7px; right: 9px; z-index: 2; font-size: 7.5px; background: #238636; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 700; letter-spacing: 0.4px; }
+.cam-ts { position: absolute; top: 7px; left: 9px; z-index: 2; font-size: 8px; color: #484f58; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 3px; }
+
+/* SOIL + CHARTS */
+.soil-card {
+  flex: 2; min-height: 0; overflow: hidden;
+  background: #161b22; border-radius: 10px; border: 1px solid #30363d;
+  padding: 10px 12px; display: flex; flex-direction: column;
+}
+.cso { color: #39d353; }
+.soil-sensors { display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0; }
+
+.sensor-block {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  background: #0d1117; border-radius: 8px; padding: 7px 10px;
+  border: 1px solid #21262d; overflow: hidden;
+}
+.sensor-hdr { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-bottom: 4px; }
+.s-ico { font-size: 12px; flex-shrink: 0; }
+.s-name { font-size: 10.5px; color: #8b949e; flex: 1; }
+.s-pct { font-size: 12px; font-weight: 800; }
+.pct-g { color: #39d353; } .pct-a { color: #e3b341; } .pct-r { color: #f85149; }
+.s-badge { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.st-ok { background: rgba(57,211,83,0.12); color: #39d353; }
+.st-low { background: rgba(227,179,65,0.12); color: #e3b341; }
+.st-dry { background: rgba(248,81,73,0.12); color: #f85149; }
+
+/* CHART — fill available flex space */
+.chart-wrap { flex: 1; min-height: 0; position: relative; }
+.chart-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+</style>
+</head>
+<body>
+
+<!-- ═══ LEFT COLUMN ═══════════════════════════════════════ -->
+<div class="left-col">
+
+  <!-- STATUS / PRESENCE -->
+  <div class="info-card">
+    <div>
+      <div class="clock-row">
+        <span class="clock-big">9:42</span>
+        <span class="clock-ampm">AM</span>
+      </div>
+      <div class="clock-date">Thursday · May 15, 2026</div>
+    </div>
+    <div class="persons">
+      <div class="person-card">
+        <div class="av avl">L</div>
+        <div><div class="pn">Riley</div><div class="phome">● Home</div></div>
+      </div>
+      <div class="person-card">
+        <div class="av avm">M</div>
+        <div><div class="pn">Casey</div><div class="phome">● Home</div></div>
+      </div>
+    </div>
+    <div class="bot-row">
+      <div class="pw-chip">
+        <div class="pw-val">1,240 W</div>
+        <div class="pw-lbl">Power Draw</div>
+      </div>
+      <div class="cast-btn">📡 Cast Panel</div>
+    </div>
+  </div>
+
+  <!-- INDUSTRY STRIP — above kitchen -->
+  <div class="industry-strip">
+    <span class="ind-ico">📺</span>
+    <div class="ind-label">
+      <div class="ind-n">Industry — Max</div>
+      <div class="ind-sub">Hold to stop · now idle</div>
+    </div>
+    <div class="ind-action">Cast ›</div>
+  </div>
+
+  <!-- KITCHEN -->
+  <div class="card card-grow">
+    <div class="ch ck">Kitchen <span class="csub">🟢 Motion · 340 lx</span></div>
+
+    <div class="lrow">
+      <span class="lic">💡</span><span class="ln">Kitchen</span>
+      <span class="lp yk">78%</span><div class="tog tok"></div>
+    </div>
+    <div class="btrack"><div class="bk" style="width:78%"></div></div>
+
+    <div class="color-row">
+      <span class="color-label">Color</span>
+      <span class="csw warm active" title="Warm white"></span>
+      <span class="csw natural" title="Natural"></span>
+      <span class="csw cool" title="Cool white"></span>
+      <span class="csw red" title="Red"></span>
+      <span class="csw blue" title="Blue"></span>
+      <span class="csw purple" title="Purple"></span>
+      <span class="color-wheel" title="Full color wheel (long press)"></span>
+      <span class="hold-hint">hold</span>
+    </div>
+
+    <div class="mini-g">
+      <div class="mini"><div class="mln">Counter Strip</div><div class="mls yk">60%</div></div>
+      <div class="mini"><div class="mln">Ceiling</div><div class="mls yk">85%</div></div>
+    </div>
+
+    <div class="mrow">
+      <span class="mic">🔊</span><span class="mname">Kitchen Speaker</span><span class="mstate">Idle</span>
+    </div>
+
+    <div class="snooze-btn">
+      <span class="snooze-ico">⏸</span> Snooze automations 30 min
+    </div>
+  </div>
+
+  <!-- LIVING ROOM -->
+  <div class="card card-grow">
+    <div class="ch clr">Living Room <span class="csub">⚪ Clear · 180 lx</span></div>
+
+    <div class="lrow">
+      <span class="lic">💡</span><span class="ln">Living Room</span>
+      <span class="lp yo">Off</span><div class="tog tf"></div>
+    </div>
+    <div class="btrack"><div class="bb" style="width:0%"></div></div>
+
+    <div class="color-row">
+      <span class="color-label">Color</span>
+      <span class="csw warm" title="Warm white"></span>
+      <span class="csw natural" title="Natural"></span>
+      <span class="csw cool" title="Cool white"></span>
+      <span class="csw red" title="Red"></span>
+      <span class="csw blue" title="Blue"></span>
+      <span class="csw purple" title="Purple"></span>
+      <span class="color-wheel" title="Full color wheel (long press)"></span>
+      <span class="hold-hint">hold</span>
+    </div>
+
+    <div class="mini-g">
+      <div class="mini"><div class="mln">Lamp</div><div class="mls yo">Off</div></div>
+      <div class="mini"><div class="mln">TV Strip</div><div class="mls yp">40%</div></div>
+    </div>
+
+    <div class="mrow">
+      <span class="mic">📺</span><span class="mname">Roku Ultra</span><span class="mstate">Idle</span>
+    </div>
+
+    <div class="snooze-btn">
+      <span class="snooze-ico">⏸</span> Snooze automations 30 min
+    </div>
+  </div>
+
+</div><!-- /left-col -->
+
+
+<!-- ═══ RIGHT COLUMN ══════════════════════════════════════ -->
+<div class="right-col">
+
+  <!-- CAMERAS — tall stacked -->
+  <div class="cams-card">
+    <div class="ch cso" style="margin-bottom:7px; flex-shrink:0;">
+      Cameras
+      <span class="csub">Blink · snapshot every 5 min</span>
+    </div>
+    <div class="cams-wrap">
+      <div class="cam">
+        <span class="cam-glyph">📷</span>
+        <div class="cam-ts">9:40 AM</div>
+        <div class="cam-name">Driveway</div>
+        <div class="cam-live">LIVE</div>
+      </div>
+      <div class="cam">
+        <span class="cam-glyph">📷</span>
+        <div class="cam-ts">9:40 AM</div>
+        <div class="cam-name">Backyard</div>
+        <div class="cam-live">LIVE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOIL + SPARKLINES -->
+  <div class="soil-card">
+    <div class="ch cso" style="margin-bottom:7px; flex-shrink:0;">
+      Soil Moisture
+      <span class="csub">7-day trend →</span>
+    </div>
+    <div class="soil-sensors">
+
+      <!-- FESCUE: 35,38,42,40,32,36,38 — mapped to svg y (0=top, 40=bottom) -->
+      <div class="sensor-block">
+        <div class="sensor-hdr">
+          <span class="s-ico">🌿</span>
+          <span class="s-name">Fescue Grass</span>
+          <span class="s-pct pct-g">38%</span>
+          <span class="s-badge st-ok">Healthy</span>
+        </div>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 280 32" preserveAspectRatio="none">
+            <line x1="0" y1="5"  x2="280" y2="5"  stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="16" x2="280" y2="16" stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="27" x2="280" y2="27" stroke="#21262d" stroke-width="0.5"/>
+            <path d="M0,20 L47,17.6 L93,14.4 L140,16 L187,22.4 L233,19.2 L280,17.6 L280,32 L0,32 Z"
+                  fill="rgba(57,211,83,0.1)"/>
+            <polyline points="0,20 47,17.6 93,14.4 140,16 187,22.4 233,19.2 280,17.6"
+                      stroke="#39d353" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="280" cy="17.6" r="2.5" fill="#39d353"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- GREEN GIANT: 44,46,48,42,38,40,42 -->
+      <div class="sensor-block">
+        <div class="sensor-hdr">
+          <span class="s-ico">🌲</span>
+          <span class="s-name">Green Giant</span>
+          <span class="s-pct pct-g">42%</span>
+          <span class="s-badge st-ok">Healthy</span>
+        </div>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 280 32" preserveAspectRatio="none">
+            <line x1="0" y1="5"  x2="280" y2="5"  stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="16" x2="280" y2="16" stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="27" x2="280" y2="27" stroke="#21262d" stroke-width="0.5"/>
+            <path d="M0,12.8 L47,11.2 L93,9.6 L140,14.4 L187,17.6 L233,16 L280,14.4 L280,32 L0,32 Z"
+                  fill="rgba(57,211,83,0.1)"/>
+            <polyline points="0,12.8 47,11.2 93,9.6 140,14.4 187,17.6 233,16 280,14.4"
+                      stroke="#39d353" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="280" cy="14.4" r="2.5" fill="#39d399"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- INDOOR TREE: 24,22,28,26,20,18,22 -->
+      <div class="sensor-block">
+        <div class="sensor-hdr">
+          <span class="s-ico">🌳</span>
+          <span class="s-name">Indoor Tree</span>
+          <span class="s-pct pct-g">22%</span>
+          <span class="s-badge st-ok">Healthy</span>
+        </div>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 280 32" preserveAspectRatio="none">
+            <line x1="0" y1="5"  x2="280" y2="5"  stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="16" x2="280" y2="16" stroke="#21262d" stroke-width="0.5"/>
+            <line x1="0" y1="27" x2="280" y2="27" stroke="#21262d" stroke-width="0.5"/>
+            <path d="M0,28.8 L47,30.4 L93,25.6 L140,27.2 L187,31 L233,31 L280,30.4 L280,32 L0,32 Z"
+                  fill="rgba(57,211,83,0.1)"/>
+            <polyline points="0,28.8 47,30.4 93,25.6 140,27.2 187,31 233,31 280,30.4"
+                      stroke="#39d353" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="280" cy="30.4" r="2.5" fill="#39d353"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /right-col -->
+
+</body>
+</html>

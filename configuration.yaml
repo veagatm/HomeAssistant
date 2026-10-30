@@ -1,0 +1,50 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+homeassistant:
+  external_url: "https://ha.example.net"
+  internal_url: "http://192.168.68.3:8123"
+  packages: !include_dir_named packages
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+lovelace:
+  resources: !include lovelace/resources.yaml
+  mode: yaml
+  dashboards:
+    kitchen-panel:
+      mode: yaml
+      filename: lovelace/kiosk/kitchen_panel.yaml
+      title: Kitchen Panel
+      icon: mdi:tablet-dashboard
+      show_in_sidebar: true
+      require_admin: false
+    lovelace-desktop:
+      mode: yaml
+      filename: lovelace/desktop/desktop.yaml
+      title: Desktop
+      icon: mdi:monitor-dashboard
+      show_in_sidebar: true
+      require_admin: false
+
+notify:
+  - platform: group
+    name: "all_phones"
+    services:
+      - service: mobile_app_pixel_8
+      - service: mobile_app_casey_s_galaxy
+
+http:
+  ip_ban_enabled: true
+  login_attempts_threshold: 30
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.68.0/24
+    - 127.0.0.1
+    - 172.30.33.0/24

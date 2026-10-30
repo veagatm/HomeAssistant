@@ -1,0 +1,220 @@
+# HA Helper Entities
+# DEPLOY: Recommended approach — use HA packages so this file stands alone:
+#   1. SSH in and run: mkdir -p /config/packages
+#   2. Add to /config/configuration.yaml (once only):
+#        homeassistant:
+#          packages: !include_dir_named packages
+#   3. scp -P 22222 -i ~/.ssh/ha_green helpers.yaml root@192.168.68.3:/config/packages/helpers.yaml
+#   4. ha core restart
+#
+# If NOT using packages, merge each section into the matching section in
+# configuration.yaml — do NOT append duplicate top-level keys.
+
+input_boolean:
+
+  # ── Manual overrides ─────────────────────────────────────────────────────
+  bed_manual_mode:
+    name: "Bedroom Manual Mode"
+    icon: mdi:movie
+
+  # ── Global state flags ────────────────────────────────────────────────────
+  away_mode_active:
+    name: "Away Mode Active"
+    icon: mdi:home-export-outline
+  sleep_mode_active:
+    name: "Sleep Mode Active"
+    icon: mdi:sleep
+  trash_night:
+    name: "Trash Night"
+    icon: mdi:trash-can-outline
+
+  # ── Room-level automation master switches ─────────────────────────────────
+  # Turn OFF to disable every automation for that room at once.
+  automations_living_room:
+    name: "Automations: Living Room"
+    icon: mdi:sofa
+    initial: true
+  automations_bedroom:
+    name: "Automations: Bedroom"
+    icon: mdi:bed
+    initial: true
+  automations_kitchen:
+    name: "Automations: Kitchen"
+    icon: mdi:chef-hat
+    initial: true
+
+  # ── Per-automation toggles ────────────────────────────────────────────────
+  # Turn OFF to permanently disable a single automation without touching others.
+  automation_washer_alert:
+    name: "Automation: Washer Done Alert"
+    icon: mdi:washing-machine
+    initial: true
+  automation_dryer_alert:
+    name: "Automation: Dryer Done Alert"
+    icon: mdi:tumble-dryer
+    initial: true
+  automation_internet_outage:
+    name: "Automation: Internet Outage Warning"
+    icon: mdi:web-off
+    initial: true
+  automation_away_mode:
+    name: "Automation: Away Mode"
+    icon: mdi:home-export-outline
+    initial: true
+  automation_arriving_home:
+    name: "Automation: Arriving Home"
+    icon: mdi:home-import-outline
+    initial: true
+  automation_sleep_mode:
+    name: "Automation: Sleep Mode (Vibration)"
+    icon: mdi:sleep
+    initial: true
+  automation_wake_mode:
+    name: "Automation: Wake Routine (Vibration)"
+    icon: mdi:weather-sunny
+    initial: true
+  automation_trash_reminder:
+    name: "Automation: Trash Reminder"
+    icon: mdi:trash-can
+    initial: true
+  automation_memory_lights_lr:
+    name: "Automation: Memory Lights (Living Room)"
+    icon: mdi:lightbulb-auto
+    initial: true
+  automation_memory_lights_bed:
+    name: "Automation: Memory Lights (Bedroom)"
+    icon: mdi:lightbulb-auto
+    initial: true
+  automation_memory_lights_kit:
+    name: "Automation: Memory Lights (Kitchen)"
+    icon: mdi:lightbulb-auto
+    initial: true
+  automation_hall_motion:
+    name: "Automation: Hallway Motion Lights"
+    icon: mdi:motion-sensor
+    initial: true
+
+  # ── Irrigation ──────────────────────────────────────────────────────────────
+  # Requires: 3× Sonoff Hydro ONE (SWV-ZFU/SWV-ZFE) paired to Zigbee2MQTT
+  irrigation_trees_enabled:
+    name: "Irrigation: Trees Enabled"
+    icon: mdi:tree
+    initial: true
+  irrigation_sprinklers_enabled:
+    name: "Irrigation: Sprinklers Enabled"
+    icon: mdi:sprinkler
+    initial: true
+  irrigation_rain_skip:
+    name: "Irrigation: Skip When Raining"
+    icon: mdi:weather-rainy
+    initial: true
+
+input_datetime:
+
+  # ── Laundry cycle start timestamps ───────────────────────────────────────
+  washer_started_at:
+    name: "Washer Started At"
+    has_date: true
+    has_time: true
+  dryer_started_at:
+    name: "Dryer Started At"
+    has_date: true
+    has_time: true
+
+  # ── Memory lights: when lights were last auto-turned off ─────────────────
+  # Automation checks this to decide whether to restore scene on re-entry.
+  # 30-minute restore window; older = skip restore, use time-of-day logic.
+  memory_lights_lr_off_at:
+    name: "Memory Lights LR: Off At"
+    has_date: true
+    has_time: true
+  memory_lights_bed_off_at:
+    name: "Memory Lights Bed: Off At"
+    has_date: true
+    has_time: true
+  memory_lights_kit_off_at:
+    name: "Memory Lights Kitchen: Off At"
+    has_date: true
+    has_time: true
+
+  # ── Camera / surveillance ─────────────────────────────────────────────────
+  code_enforcement_last_seen:
+    name: "Code Enforcement: Last Seen"
+    has_date: true
+    has_time: true
+
+  # ── Snooze timestamps ─────────────────────────────────────────────────────
+  # Automation skips execution while now() < this timestamp.
+  # 'unknown' state (never set) = not snoozed.
+  # Scripts in scripts.yaml set these forward. Clear by setting to 1970-01-01.
+  snooze_lr_motion:
+    name: "Snooze: LR Motion Lights"
+    has_date: true
+    has_time: true
+  snooze_bed_motion:
+    name: "Snooze: Bed Motion Lights"
+    has_date: true
+    has_time: true
+  snooze_kit_motion:
+    name: "Snooze: Kitchen Motion Lights"
+    has_date: true
+    has_time: true
+  snooze_washer_alert:
+    name: "Snooze: Washer Alert"
+    has_date: true
+    has_time: true
+  snooze_dryer_alert:
+    name: "Snooze: Dryer Alert"
+    has_date: true
+    has_time: true
+  snooze_internet_outage:
+    name: "Snooze: Internet Outage"
+    has_date: true
+    has_time: true
+  snooze_away_mode:
+    name: "Snooze: Away Mode"
+    has_date: true
+    has_time: true
+  snooze_arriving_home:
+    name: "Snooze: Arriving Home"
+    has_date: true
+    has_time: true
+  snooze_sleep_mode:
+    name: "Snooze: Sleep Mode"
+    has_date: true
+    has_time: true
+  snooze_wake_mode:
+    name: "Snooze: Wake Routine"
+    has_date: true
+    has_time: true
+  snooze_trash_reminder:
+    name: "Snooze: Trash Reminder"
+    has_date: true
+    has_time: true
+  snooze_memory_lights_lr:
+    name: "Snooze: Memory Lights LR"
+    has_date: true
+    has_time: true
+  snooze_memory_lights_bed:
+    name: "Snooze: Memory Lights Bed"
+    has_date: true
+    has_time: true
+  snooze_memory_lights_kit:
+    name: "Snooze: Memory Lights Kitchen"
+    has_date: true
+    has_time: true
+  snooze_hall_motion:
+    name: "Snooze: Hallway Motion Lights"
+    has_date: true
+    has_time: true
+
+  # ── Irrigation schedule tracking ────────────────────────────────────────────
+  # Valve switches: switch.trees_valve / switch.sprinklers_valve / switch.utility_valve
+  irrigation_trees_last_run:
+    name: "Trees: Last Watered"
+    has_date: true
+    has_time: true
+  irrigation_sprinklers_last_run:
+    name: "Sprinklers: Last Watered"
+    has_date: true
+    has_time: true

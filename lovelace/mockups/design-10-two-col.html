@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design 10 — Two Column Wide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0d1117; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Roboto Mono', monospace;
+  color: #c9d1d9;
+  display: grid;
+  grid-template-rows: 50px 1fr;
+  padding: 10px; gap: 8px;
+}
+
+/* STATUS BAR */
+.sb {
+  display: flex; align-items: center; gap: 7px;
+  background: #161b22; border-radius: 10px;
+  padding: 0 14px; border: 1px solid #30363d;
+}
+.chip { display: flex; align-items: center; gap: 5px; background: #0d1117; border-radius: 6px; padding: 4px 10px; border: 1px solid #30363d; font-size: 11.5px; }
+.dg { width: 6px; height: 6px; border-radius: 50%; background: #3fb950; }
+.sp { flex: 1; }
+.clk { font-size: 21px; font-weight: 700; color: #f0f6fc; }
+.dt { font-size: 10px; color: #484f58; margin-left: 8px; }
+.pw { color: #e3b341; font-weight: 700; }
+.cast-b { background: #1f6feb; color: white; border-radius: 6px; padding: 4px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+
+/* MAIN: two equal wide columns */
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px; min-height: 0;
+}
+
+/* LEFT: kitchen (full height) */
+/* RIGHT: LR top, then 2 cameras side, then soil strip */
+.right-col {
+  display: grid;
+  grid-template-rows: 1fr 160px 80px;
+  gap: 8px; min-height: 0;
+}
+.cams-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* CARDS */
+.card {
+  background: #161b22; border-radius: 10px;
+  border: 1px solid #30363d; padding: 12px 14px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+.ch {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+  padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #21262d;
+  display: flex; justify-content: space-between;
+}
+.ck { color: #e3b341; } .clr { color: #58a6ff; } .cso { color: #39d353; }
+.csub { font-size: 9px; color: #484f58; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* LIGHTS */
+.lrow { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #21262d; font-size: 12px; }
+.lrow:last-of-type { border-bottom: none; }
+.lic { font-size: 13px; width: 18px; }
+.ln { flex: 1; color: #8b949e; }
+.lp { font-weight: 700; }
+.yk { color: #e3b341; } .yb { color: #58a6ff; } .yp { color: #a371f7; } .yo { color: #484f58; }
+.tog { width: 32px; height: 18px; border-radius: 9px; position: relative; flex-shrink: 0; }
+.tok { background: #5a4a00; border: 1px solid #e3b341; }
+.tob { background: #0d2040; border: 1px solid #58a6ff; }
+.tf { background: #21262d; border: 1px solid #30363d; }
+.tog::after { content: ''; width: 14px; height: 14px; border-radius: 50%; background: white; position: absolute; top: 2px; }
+.tok::after { left: 16px; } .tob::after { left: 16px; } .tf::after { left: 2px; }
+.btrack { height: 3px; background: #21262d; border-radius: 2px; margin: 3px 0 10px; }
+.bk { height: 100%; border-radius: 2px; background: #e3b341; }
+.bb { height: 100%; border-radius: 2px; background: #58a6ff; }
+
+.mini-g { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 10px; }
+.mini { background: #0d1117; border-radius: 6px; padding: 7px 9px; border: 1px solid #21262d; }
+.mln { font-size: 9.5px; color: #484f58; margin-bottom: 2px; }
+.mls { font-size: 12px; font-weight: 700; }
+
+.mrow { display: flex; align-items: center; gap: 8px; padding: 6px 9px; background: #0d1117; border-radius: 7px; border: 1px solid #21262d; font-size: 11.5px; margin-bottom: 8px; }
+.mic { font-size: 14px; }
+.mname { flex: 1; color: #8b949e; }
+.mstate { color: #484f58; font-size: 10.5px; }
+
+/* INDUSTRY — takes up the full bottom of the kitchen column */
+.ind {
+  margin-top: auto;
+  background: #1a0e2e; border: 1px solid #6e40c9;
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  box-shadow: 0 0 30px rgba(110,64,201,0.1);
+}
+.ind-ico { font-size: 26px; }
+.ind-n { font-size: 14.5px; font-weight: 800; color: #a371f7; }
+.ind-sub { font-size: 10.5px; color: #484f58; margin-top: 3px; }
+
+/* CAMERA */
+.cam {
+  border-radius: 8px; background: #080b10;
+  border: 1px solid #21262d; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cam::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 40% 30%, #0a1a2e 0%, #040810 80%); }
+.cam-ic { position: relative; z-index: 1; font-size: 28px; opacity: 0.1; }
+.cam-lbl { position: absolute; bottom: 6px; left: 8px; z-index: 2; font-size: 9px; color: #484f58; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+.cam-badge { position: absolute; top: 6px; right: 7px; z-index: 2; font-size: 8px; background: #238636; color: white; padding: 2px 5px; border-radius: 3px; font-weight: 700; }
+
+/* SOIL (horizontal strip at bottom) */
+.soil-strip {
+  display: flex; align-items: center; gap: 0;
+  padding: 0 14px;
+}
+.soil-item { display: flex; align-items: center; gap: 8px; flex: 1; padding: 0 12px; border-right: 1px solid #21262d; }
+.soil-item:first-child { padding-left: 0; }
+.soil-item:last-child { border-right: none; }
+.sico { font-size: 14px; }
+.sname { flex: 1; font-size: 11px; color: #6b7280; }
+.sbar { width: 40px; height: 3px; background: #21262d; border-radius: 2px; flex-shrink: 0; }
+.sfill { height: 100%; border-radius: 2px; background: #39d353; }
+.spct { font-size: 12px; font-weight: 700; color: #39d353; min-width: 28px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="sb">
+  <div class="chip"><span class="dg"></span> Riley · Home</div>
+  <div class="chip"><span class="dg"></span> Casey · Home</div>
+  <div class="sp"></div>
+  <span class="clk">9:42 AM</span>
+  <span class="dt">Thursday, May 15</span>
+  <div class="sp"></div>
+  <div class="chip"><span class="pw">⚡ 1,240 W</span></div>
+  <div class="cast-b">📡 Cast</div>
+</div>
+
+<!-- MAIN -->
+<div class="content">
+
+  <!-- LEFT: KITCHEN full height -->
+  <div class="card">
+    <div class="ch ck">Kitchen <span class="csub">🟢 Motion · 340 lux</span></div>
+
+    <div class="lrow">
+      <span class="lic">💡</span><span class="ln">Kitchen</span>
+      <span class="lp yk">78%</span><div class="tog tok"></div>
+    </div>
+    <div class="btrack"><div class="bk" style="width:78%"></div></div>
+
+    <div class="mini-g">
+      <div class="mini"><div class="mln">Counter Strip</div><div class="mls yk">60%</div></div>
+      <div class="mini"><div class="mln">Ceiling</div><div class="mls yk">85%</div></div>
+    </div>
+
+    <div class="mrow">
+      <span class="mic">🔊</span><span class="mname">Kitchen Speaker</span><span class="mstate">Idle</span>
+    </div>
+
+    <div class="ind">
+      <span class="ind-ico">📺</span>
+      <div>
+        <div class="ind-n">Industry — Max</div>
+        <div class="ind-sub">Tap to cast to Nest Hub · Hold to stop</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COL: LR + cameras + soil -->
+  <div class="right-col">
+
+    <!-- LIVING ROOM -->
+    <div class="card">
+      <div class="ch clr">Living Room <span class="csub">⚪ Clear · 180 lux</span></div>
+
+      <div class="lrow">
+        <span class="lic">💡</span><span class="ln">Living Room</span>
+        <span class="lp yo">Off</span><div class="tog tf"></div>
+      </div>
+      <div class="btrack"><div class="bb" style="width:0%"></div></div>
+
+      <div class="mini-g">
+        <div class="mini"><div class="mln">Lamp</div><div class="mls yo">Off</div></div>
+        <div class="mini"><div class="mln">TV Strip</div><div class="mls yp">40%</div></div>
+      </div>
+
+      <div class="mrow">
+        <span class="mic">📺</span><span class="mname">Roku Ultra</span><span class="mstate">Idle</span>
+      </div>
+    </div>
+
+    <!-- CAMERAS side by side -->
+    <div class="cams-row">
+      <div class="card" style="padding:8px 10px; gap:6px;">
+        <div class="ch cso" style="font-size:9px; padding-bottom:5px; margin-bottom:6px;">Driveway</div>
+        <div class="cam" style="flex:1;">
+          <span class="cam-ic">📷</span>
+          <div class="cam-lbl">Blink</div>
+          <div class="cam-badge">LIVE</div>
+        </div>
+      </div>
+      <div class="card" style="padding:8px 10px; gap:6px;">
+        <div class="ch cso" style="font-size:9px; padding-bottom:5px; margin-bottom:6px;">Backyard</div>
+        <div class="cam" style="flex:1;">
+          <span class="cam-ic">📷</span>
+          <div class="cam-lbl">Blink</div>
+          <div class="cam-badge">LIVE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOIL — horizontal strip -->
+    <div class="card" style="justify-content:center;">
+      <div class="soil-strip">
+        <div class="soil-item">
+          <span class="sico">🌿</span><span class="sname">Fescue</span>
+          <div class="sbar"><div class="sfill" style="width:76%"></div></div>
+          <span class="spct">38%</span>
+        </div>
+        <div class="soil-item">
+          <span class="sico">🌲</span><span class="sname">Green Giant</span>
+          <div class="sbar"><div class="sfill" style="width:84%"></div></div>
+          <span class="spct">42%</span>
+        </div>
+        <div class="soil-item">
+          <span class="sico">🌳</span><span class="sname">Indoor</span>
+          <div class="sbar"><div class="sfill" style="width:88%"></div></div>
+          <span class="spct">22%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

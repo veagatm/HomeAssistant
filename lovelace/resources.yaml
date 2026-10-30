@@ -1,0 +1,24 @@
+# Lovelace Frontend Resources
+# Loaded via: lovelace: resources: !include lovelace/resources.yaml
+# After adding/removing resources, reload Lovelace:
+#   Developer Tools → YAML → Reload Lovelace
+
+- url: /hacsfiles/lovelace-mushroom/mushroom.js
+  type: module
+  # HACS: Lovelace Mushroom
+
+- url: /hacsfiles/Bubble-Card/bubble-card.js
+  type: module
+  # HACS: Bubble Card
+
+- url: /hacsfiles/lovelace-card-mod/card-mod.js
+  type: module
+  # HACS: card-mod (CSS customization)
+
+- url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js
+  type: module
+  # HACS: Mini Graph Card
+
+- url: /hacsfiles/lovelace-layout-card/layout-card.js
+  type: module
+  # HACS: Lovelace Layout Card

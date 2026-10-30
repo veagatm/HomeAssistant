@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design 6 — Cockpit (2-zone)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0d1117; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Roboto Mono', monospace;
+  color: #c9d1d9;
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* ── STATUS BAR ──────────────────────────────────────── */
+.sb {
+  display: flex; align-items: center; gap: 7px;
+  background: #161b22; border-radius: 10px;
+  padding: 0 16px; border: 1px solid #30363d;
+}
+.p-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: #0d1117; border-radius: 6px; padding: 4px 10px;
+  border: 1px solid #30363d; font-size: 11.5px;
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dg { background: #3fb950; box-shadow: 0 0 5px #3fb950; }
+.dr { background: #f85149; }
+.sp { flex: 1; }
+.clk { font-size: 20px; font-weight: 700; color: #f0f6fc; letter-spacing: 0.5px; }
+.dt { font-size: 10px; color: #484f58; margin-left: 10px; }
+.stat { display: flex; align-items: center; gap: 6px; background: #0d1117; border-radius: 6px; padding: 4px 10px; border: 1px solid #30363d; font-size: 11.5px; }
+.pw { color: #e3b341; font-weight: 700; }
+.cast-b { background: #1f6feb; color: white; border-radius: 6px; padding: 4px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid #388bfd; }
+
+/* ── MAIN LAYOUT: left big | right subdivided ──────── */
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* RIGHT SIDE: LR top, then cameras+soil bottom */
+.right-col {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+}
+.cameras-soil-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* ── CARDS ────────────────────────────────────────── */
+.card {
+  background: #161b22; border-radius: 10px;
+  border: 1px solid #30363d; padding: 12px 14px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.ch {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+  font-weight: 700; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ch-k { color: #e3b341; }
+.ch-lr { color: #58a6ff; }
+.ch-cam { color: #39d353; }
+.ch-soil { color: #39d353; }
+.ch-sub { font-size: 9px; color: #484f58; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* LIGHT ROW */
+.lr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid #21262d; font-size: 12px;
+}
+.lr:last-of-type { border-bottom: none; }
+.lr-ico { font-size: 13px; width: 18px; }
+.lr-name { flex: 1; color: #8b949e; }
+.lr-pct { font-weight: 700; font-size: 11.5px; }
+.on-k { color: #e3b341; }
+.on-lr { color: #58a6ff; }
+.on-pu { color: #a371f7; }
+.off { color: #484f58; }
+.tog {
+  width: 32px; height: 18px; border-radius: 9px; position: relative; flex-shrink: 0;
+}
+.ton-k { background: #5a4a00; border: 1px solid #e3b341; }
+.ton-lr { background: #0d2040; border: 1px solid #58a6ff; }
+.toff { background: #21262d; border: 1px solid #30363d; }
+.tog::after {
+  content: ''; width: 14px; height: 14px; border-radius: 50%;
+  background: white; position: absolute; top: 1px;
+}
+.ton-k::after { left: 16px; } .ton-lr::after { left: 16px; }
+.toff::after { left: 1px; }
+
+.btrack { height: 3px; background: #21262d; border-radius: 2px; margin: 4px 0 8px; }
+.bfill-k { height: 100%; border-radius: 2px; background: linear-gradient(to right, #e3b341, #f97316); }
+.bfill-lr { height: 100%; border-radius: 2px; background: linear-gradient(to right, #3b82f6, #818cf8); }
+
+/* MINI PAIR */
+.mini-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 10px; }
+.mini { background: #0d1117; border-radius: 7px; padding: 6px 8px; border: 1px solid #21262d; }
+.mn { font-size: 9.5px; color: #484f58; margin-bottom: 2px; }
+.ms { font-size: 12px; font-weight: 700; }
+
+/* MEDIA */
+.media-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; background: #0d1117; border-radius: 7px;
+  border: 1px solid #21262d; font-size: 11.5px; margin-bottom: 8px;
+}
+.m-ico { font-size: 14px; }
+.m-name { flex: 1; color: #8b949e; }
+.m-state { color: #484f58; font-size: 10.5px; }
+
+/* INDUSTRY — big in kitchen */
+.ind {
+  margin-top: auto;
+  background: #1a0e2e; border: 1px solid #6e40c9;
+  border-radius: 10px; padding: 11px 14px;
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  box-shadow: inset 0 0 30px rgba(110,64,201,0.1);
+}
+.ind-ico { font-size: 22px; }
+.ind-n { font-size: 13.5px; font-weight: 800; color: #a371f7; }
+.ind-sub { font-size: 10px; color: #484f58; margin-top: 2px; }
+
+/* CAMERA */
+.cam-frame {
+  flex: 1; border-radius: 8px; background: #080b10;
+  border: 1px solid #21262d; min-height: 60px;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cam-frame::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 40% 35%, #0d1826 0%, #050810 80%);
+}
+.cam-ic { position: relative; z-index: 1; font-size: 24px; opacity: 0.12; }
+.cam-lbl {
+  position: absolute; bottom: 5px; left: 7px; z-index: 2;
+  font-size: 9px; color: #484f58; background: rgba(0,0,0,0.7);
+  padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* SOIL in 3rd bottom card */
+.soil-rows { display: flex; flex-direction: column; gap: 0; justify-content: center; flex: 1; }
+.srow { display: flex; align-items: center; gap: 7px; padding: 5px 0; border-bottom: 1px solid #21262d; }
+.srow:last-child { border-bottom: none; }
+.s-ico { font-size: 12px; flex-shrink: 0; }
+.s-name { font-size: 10.5px; color: #6b7280; flex: 1; }
+.s-bar { width: 36px; height: 3px; background: #21262d; border-radius: 2px; flex-shrink: 0; }
+.s-fill { height: 100%; border-radius: 2px; background: #39d353; }
+.s-pct { font-size: 11.5px; font-weight: 700; color: #39d353; min-width: 26px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="sb">
+  <div class="p-badge"><span class="dot dg"></span> Riley · Home</div>
+  <div class="p-badge"><span class="dot dg"></span> Casey · Home</div>
+  <div class="sp"></div>
+  <span class="clk">9:42 AM</span>
+  <span class="dt">Thursday · May 15, 2026</span>
+  <div class="sp"></div>
+  <div class="stat"><span class="pw">⚡ 1,240 W</span></div>
+  <div class="cast-b">📡 Cast</div>
+</div>
+
+<!-- MAIN: kitchen left | right subdivided -->
+<div class="content">
+
+  <!-- KITCHEN (full left column) -->
+  <div class="card">
+    <div class="ch ch-k">
+      Kitchen
+      <span class="ch-sub">🟢 Motion · 340 lux</span>
+    </div>
+
+    <div class="lr">
+      <span class="lr-ico">💡</span>
+      <span class="lr-name">Kitchen</span>
+      <span class="lr-pct on-k">78%</span>
+      <div class="tog ton-k"></div>
+    </div>
+    <div class="btrack"><div class="bfill-k" style="width:78%"></div></div>
+
+    <div class="mini-pair">
+      <div class="mini"><div class="mn">Counter Strip</div><div class="ms on-k">60%</div></div>
+      <div class="mini"><div class="mn">Ceiling</div><div class="ms on-k">85%</div></div>
+    </div>
+
+    <div class="media-row">
+      <span class="m-ico">🔊</span>
+      <span class="m-name">Kitchen Speaker</span>
+      <span class="m-state">Idle</span>
+    </div>
+
+    <div class="ind">
+      <span class="ind-ico">📺</span>
+      <div>
+        <div class="ind-n">Industry — Max</div>
+        <div class="ind-sub">Tap to cast · Hold to stop</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="right-col">
+
+    <!-- LIVING ROOM -->
+    <div class="card">
+      <div class="ch ch-lr">
+        Living Room
+        <span class="ch-sub">⚪ Clear · 180 lux</span>
+      </div>
+
+      <div class="lr">
+        <span class="lr-ico">💡</span>
+        <span class="lr-name">Living Room</span>
+        <span class="lr-pct off">Off</span>
+        <div class="tog toff"></div>
+      </div>
+      <div class="btrack"><div class="bfill-lr" style="width:0%"></div></div>
+
+      <div class="mini-pair">
+        <div class="mini"><div class="mn">Lamp</div><div class="ms off">Off</div></div>
+        <div class="mini"><div class="mn">TV Strip</div><div class="ms on-pu">40%</div></div>
+      </div>
+
+      <div class="media-row">
+        <span class="m-ico">📺</span>
+        <span class="m-name">Roku Ultra</span>
+        <span class="m-state">Idle</span>
+      </div>
+    </div>
+
+    <!-- CAMERAS + SOIL: 3-column bottom row -->
+    <div class="cameras-soil-row">
+
+      <div class="card" style="padding:10px 12px;">
+        <div class="ch ch-cam" style="margin-bottom:8px;">Driveway</div>
+        <div class="cam-frame" style="flex:1; min-height:0;">
+          <span class="cam-ic">📷</span>
+          <div class="cam-lbl">Blink · 5 min</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:10px 12px;">
+        <div class="ch ch-cam" style="margin-bottom:8px;">Backyard</div>
+        <div class="cam-frame" style="flex:1; min-height:0;">
+          <span class="cam-ic">📷</span>
+          <div class="cam-lbl">Blink · 5 min</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:10px 12px;">
+        <div class="ch ch-soil" style="margin-bottom:8px;">Soil</div>
+        <div class="soil-rows">
+          <div class="srow">
+            <span class="s-ico">🌿</span>
+            <span class="s-name">Fescue</span>
+            <div class="s-bar"><div class="s-fill" style="width:76%"></div></div>
+            <span class="s-pct">38%</span>
+          </div>
+          <div class="srow">
+            <span class="s-ico">🌲</span>
+            <span class="s-name">Giant</span>
+            <div class="s-bar"><div class="s-fill" style="width:84%"></div></div>
+            <span class="s-pct">42%</span>
+          </div>
+          <div class="srow">
+            <span class="s-ico">🌳</span>
+            <span class="s-name">Indoor</span>
+            <div class="s-bar"><div class="s-fill" style="width:88%"></div></div>
+            <span class="s-pct">22%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,511 @@
+title: Rooms
+path: rooms
+icon: mdi:floor-plan
+
+cards:
+
+  # ── Room grid (2×3) ── tap to open popup ──────────────────────────────────────
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Living Room
+        secondary: >
+          {% if is_state('light.living_room', 'on') %}
+            On · {{ (state_attr('light.living_room', 'brightness') | int / 255 * 100) | round(0) }}% · {{ states('input_select.lighting_mode_living_room') }}
+          {% else %}Off{% endif %}
+        icon: mdi:sofa
+        icon_color: >
+          {{ 'amber' if is_state('light.living_room', 'on') else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#lr_popup"
+      - type: custom:mushroom-template-card
+        primary: Bedroom
+        secondary: >
+          {% if is_state('light.bedroom', 'on') %}
+            On · {{ (state_attr('light.bedroom', 'brightness') | int / 255 * 100) | round(0) }}% · {{ states('input_select.lighting_mode_bedroom') }}
+          {% else %}Off{% endif %}
+        icon: mdi:bed
+        icon_color: >
+          {{ 'indigo' if is_state('light.bedroom', 'on') else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#bed_popup"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Kitchen
+        secondary: >
+          {% if is_state('light.kitchen', 'on') %}
+            On · {{ (state_attr('light.kitchen', 'brightness') | int / 255 * 100) | round(0) }}% · {{ states('input_select.lighting_mode_kitchen') }}
+          {% else %}Off{% endif %}
+        icon: mdi:chef-hat
+        icon_color: >
+          {{ 'teal' if is_state('light.kitchen', 'on') else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#kit_popup"
+      - type: custom:mushroom-template-card
+        primary: Hallway
+        secondary: >
+          {% if is_state('light.hallway', 'on') %}
+            On · {{ (state_attr('light.hallway', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:door-closed
+        icon_color: >
+          {{ 'cyan' if is_state('light.hallway', 'on') else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#hall_popup"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Office
+        secondary: >
+          {% if is_state('light.office', 'on') %}
+            On · {{ (state_attr('light.office', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:desk-lamp
+        icon_color: >
+          {{ 'purple' if is_state('light.office', 'on') else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#office_popup"
+      - type: custom:mushroom-template-card
+        primary: Outdoor
+        secondary: >
+          {% set on_lights = [
+            is_state('light.porch','on'), is_state('light.porch_2','on'),
+            is_state('light.h702b','on'),
+            is_state('switch.outdoor_gang_switch_l1','on'),
+            is_state('switch.outdoor_gang_switch_l3','on'), is_state('switch.outdoor_gang_switch_l4','on'),
+            is_state('switch.outdoor_plug','on')
+          ] %}
+          {% set count = on_lights | select('equalto', true) | list | count %}
+          {{ count }} light{{ 's' if count != 1 }} on
+        icon: mdi:outdoor-lamp
+        icon_color: >
+          {% set on_lights = [
+            is_state('light.porch','on'), is_state('light.porch_2','on'),
+            is_state('light.h702b','on'),
+            is_state('switch.outdoor_gang_switch_l1','on'),
+            is_state('switch.outdoor_gang_switch_l3','on'), is_state('switch.outdoor_gang_switch_l4','on'),
+            is_state('switch.outdoor_plug','on')
+          ] %}
+          {{ 'green' if on_lights | select('equalto', true) | list | count > 0 else 'disabled' }}
+        tap_action:
+          action: navigate
+          navigation_path: "#porch_popup"
+
+
+  # ── Bubble Card Popups (vertical-stack: popup header first, then content) ──────
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#lr_popup"
+        name: Living Room
+        icon: mdi:sofa
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.living_room
+            name: Room Group
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.lamp
+            name: Lamp
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.front_left
+            name: Front L
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.front_right
+            name: Front R
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.back_left
+            name: Back L
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.tv_light
+            name: TV Strip
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: custom:mushroom-media-player-card
+        entity: media_player.roku_ultra
+        name: Roku
+        use_media_info: true
+        collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-select-card
+            entity: input_select.lighting_mode_living_room
+            name: Mode
+            icon: mdi:ceiling-light-multiple
+          - type: custom:mushroom-select-card
+            entity: input_select.party_color_living_room
+            name: Party Color
+            icon: mdi:palette
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#bed_popup"
+        name: Bedroom
+        icon: mdi:bed
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.bedroom
+            name: Room Group
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.govee_lamp_1
+            name: Floor Lamp
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.bed_1
+            name: Ceiling 1
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.bed_2
+            name: Ceiling 2
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.tall_lamp
+            name: Tall Lamp
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.bed_manual_mode
+            name: Manual Mode
+            icon: mdi:movie
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Relax
+            icon: mdi:sofa
+            icon_color: orange
+            tap_action:
+              action: call-service
+              service: scene.turn_on
+              service_data:
+                entity_id: scene.bedroom_relax
+          - type: custom:mushroom-template-card
+            primary: Bright
+            icon: mdi:brightness-7
+            icon_color: yellow
+            tap_action:
+              action: call-service
+              service: scene.turn_on
+              service_data:
+                entity_id: scene.bedroom_bright
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Movie
+            icon: mdi:movie
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: scene.turn_on
+              service_data:
+                entity_id: scene.bedroom_red
+          - type: custom:mushroom-template-card
+            primary: Dungeon
+            icon: mdi:candle
+            icon_color: deep-orange
+            tap_action:
+              action: call-service
+              service: scene.turn_on
+              service_data:
+                entity_id: scene.bedroom_dungeon
+      - type: custom:mushroom-media-player-card
+        entity: media_player.bedroom_tv_2
+        name: Bedroom TV
+        use_media_info: true
+        collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-select-card
+            entity: input_select.lighting_mode_bedroom
+            name: Mode
+            icon: mdi:ceiling-light-multiple
+          - type: custom:mushroom-select-card
+            entity: input_select.party_color_bedroom
+            name: Party Color
+            icon: mdi:palette
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#kit_popup"
+        name: Kitchen
+        icon: mdi:chef-hat
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.kitchen
+            name: Room Group
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.lightstrip
+            name: Counter Strip
+            show_brightness_control: true
+            show_color_temp_control: true
+            collapsible_controls: true
+      - type: custom:mushroom-light-card
+        entity: light.kitchen_1
+        name: Ceiling
+        show_brightness_control: true
+        collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-select-card
+            entity: input_select.lighting_mode_kitchen
+            name: Mode
+            icon: mdi:ceiling-light-multiple
+          - type: custom:mushroom-select-card
+            entity: input_select.party_color_kitchen
+            name: Party Color
+            icon: mdi:palette
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#hall_popup"
+        name: Hallway & Entry
+        icon: mdi:door-closed
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.hallway
+            name: Hallway
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.foyer
+            name: Foyer
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.dining_1
+            name: Dining 1
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.dining_2
+            name: Dining 2
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: custom:mushroom-light-card
+        entity: light.dining_3
+        name: Dining 3
+        show_brightness_control: true
+        collapsible_controls: true
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#office_popup"
+        name: Office
+        icon: mdi:desk-lamp
+      - type: custom:mushroom-light-card
+        entity: light.office
+        name: All Office Lights
+        show_brightness_control: true
+        show_color_temp_control: true
+        collapsible_controls: true
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.office_1
+            name: Office 1
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.office_2
+            name: Office 2
+            show_brightness_control: true
+            collapsible_controls: true
+      - type: custom:mushroom-light-card
+        entity: light.office_3
+        name: Office 3
+        show_brightness_control: true
+        collapsible_controls: true
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#porch_popup"
+        name: Outdoor
+        icon: mdi:outdoor-lamp
+
+      - type: custom:mushroom-title-card
+        title: Porch
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-light-card
+            entity: light.porch
+            name: Porch Bulb
+            show_brightness_control: true
+            collapsible_controls: true
+          - type: custom:mushroom-light-card
+            entity: light.porch_2
+            name: Porch
+            show_brightness_control: true
+            collapsible_controls: true
+
+      - type: custom:mushroom-title-card
+        title: Backyard
+
+      - type: custom:mushroom-light-card
+        entity: light.h702b
+        name: Outdoor Color Lights
+        show_brightness_control: true
+        show_color_temp_control: true
+        collapsible_controls: true
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_gang_switch_l1
+            name: String Lights
+            icon: mdi:string-lights
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_gang_switch_l3
+            name: Flood Light
+            icon: mdi:outdoor-lamp
+            tap_action:
+              action: toggle
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_gang_switch_l4
+            name: Shed Lights
+            icon: mdi:barn
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_plug
+            name: Carport Flood Light
+            icon: mdi:spotlight-beam
+            tap_action:
+              action: toggle
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_gang_switch_l2
+            name: Fan / Bike Charger
+            icon: mdi:fan
+            tap_action:
+              action: toggle
+          - type: custom:mushroom-entity-card
+            entity: switch.outdoor_gang_switch_l5
+            name: Backyard USB (L5)
+            icon: mdi:usb-port
+            tap_action:
+              action: toggle
+
+      - type: custom:mushroom-title-card
+        title: Driveway
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: switch.rear_flood_light
+            name: Driveway Floodlights
+            icon: mdi:spotlight-beam
+            tap_action:
+              action: toggle
+
+      # Govee outdoor light goes here once added to HA
+
+  # ── Mode Settings popup ───────────────────────────────────────────────────────
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#mode_settings_popup"
+        name: Mode Settings
+        icon: mdi:tune
+      - type: custom:mushroom-title-card
+        title: Working
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_working_brightness
+            name: Brightness
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_working_color_temp
+            name: Color Temp (K)
+      - type: custom:mushroom-title-card
+        title: Casual
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_casual_brightness
+            name: Brightness
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_casual_color_temp
+            name: Color Temp (K)
+      - type: custom:mushroom-title-card
+        title: Chill
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_chill_brightness
+            name: Brightness
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_chill_color_temp
+            name: Color Temp (K)
+      - type: custom:mushroom-title-card
+        title: Movie
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_movie_brightness
+            name: Brightness
+          - type: custom:mushroom-number-card
+            entity: input_number.mode_movie_color_temp
+            name: Color Temp (K)

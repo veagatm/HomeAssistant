@@ -1,0 +1,265 @@
+auth:
+  enabled: false
+
+mqtt:
+  enabled: true
+  host: 192.168.68.3
+  port: 1883
+  user: addons
+  password: '{FRIGATE_MQTT_PASSWORD}'
+  topic_prefix: frigate
+  client_id: frigate
+
+# CPU detection — Apple Neural Engine isn't accessible from Docker on Mac.
+# Colima VM raised from 4 CPU/6GB to 6 CPU/10GB (2026-08-09) — was capped at half
+# the M1's real 8-core/16GB capacity, the actual bottleneck once front_floodlight
+# became a 3rd camera sharing this detector (was sized for 2 cameras originally).
+detectors:
+  cpu:
+    type: cpu
+    num_threads: 6
+
+record:
+  enabled: true
+  alerts:
+    retain:
+      days: 30
+  detections:
+    retain:
+      days: 30
+snapshots:
+  enabled: true
+  timestamp: true
+  bounding_box: true
+  crop: false        # full-frame snapshots — crop:true was a CompreFace-era leftover (removed);
+                     # tight crops made low-confidence/small-box detections unreviewable in the dashboard
+  retain:
+    default: 60      # snapshot JPEGs kept 60 days (tiny, ~200KB each)
+
+face_recognition:
+  enabled: true
+  model_size: large        # better accuracy; small is faster but misses at distance
+  detection_threshold: 0.7 # min confidence to attempt recognition on a detected face
+  recognition_threshold: 0.8  # lowered from 0.9 — less strict, fewer false unknowns
+  unknown_score: 0.8       # score below which face is labelled unknown vs unclassified
+  min_area: 750            # ignore faces smaller than this (pixels²) — avoids tiny far-away faces
+  save_attempts: 200       # keep up to 200 candidate crops per person for re-training
+
+birdseye:
+  enabled: true
+  mode: motion
+
+cameras:
+  front:
+    ffmpeg:
+      inputs:
+        # Sub-stream for detection (low res, fast) — confirmed 640×360 H.264
+        - path: rtsp://admin:{FRIGATE_FRONT_PASS}@{FRIGATE_FRONT_IP}:554/h264Preview_01_sub
+          input_args: preset-rtsp-restream  # CX810 stability: forces TCP transport
+          roles:
+            - detect
+        # Main stream for recording — confirmed 3840×2160 HEVC (H.265)
+        - path: rtsp://admin:{FRIGATE_FRONT_PASS}@{FRIGATE_FRONT_IP}:554/h264Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+    detect:
+      enabled: true
+      width: 640
+      height: 360
+      fps: 8
+    objects:
+      track:
+        - person
+        - car
+      filters:
+        person:
+          min_area: 500
+          min_score: 0.6   # raised from 0.4 — 200-event sample showed real+noise both cluster 0.50-0.63; every visually-checked sample below 0.63 was grass/shadow/IR noise, not a person
+          threshold: 0.65  # raised from 0.5, same reasoning
+          mask: "0.55,0.10,0.90,0.10,0.90,0.53,0.55,0.53"  # tree-line noise cluster — 66/165 recent person events centered here (x:0.56-0.89, y:0.14-0.52), confirmed via thumbnails to be wind/shadow, not people
+        car:
+          min_area: 2000
+          min_score: 0.4
+          threshold: 0.5
+    zones:
+      front_zone:
+        coordinates: 0.035,0,0.424,0.049,0.754,0.422,0.903,1,0,1
+        objects:
+          - person
+          - car
+      road_zone:
+        coordinates: 0.535,0,0.608,0,0.683,0.061,0.814,0.329,0.793,0.445,0.615,0.194
+        objects:
+          - car
+        inertia: 3          # raised from 1 (Frigate default) — was triggering on a single frame for cars barely clipping the zone edge
+        loitering_time: 2   # raised from 0 — requires brief dwell before counting as "entered", cuts spurious OCR triggers on edge-clipping cars
+    motion:
+      mask: []   # add masks in UI to exclude road/street movement
+
+  backyard:
+    ffmpeg:
+      inputs:
+        # Sub-stream for detection — RLC-1212A is 4:3, verify resolution in Frigate UI
+        - path: rtsp://admin:{FRIGATE_BACKYARD_PASS}@{FRIGATE_BACKYARD_IP}:554/h264Preview_01_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+        # Main stream for recording — 12MP HEVC
+        - path: rtsp://admin:{FRIGATE_BACKYARD_PASS}@{FRIGATE_BACKYARD_IP}:554/h264Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+    detect:
+      enabled: true
+      width: 640
+      height: 480
+      fps: 8
+    objects:
+      track:
+        - person
+        - dog
+        - bird
+      filters:
+        person:
+          min_area: 2000
+          min_score: 0.65
+          threshold: 0.75
+        dog:
+          min_area: 1000
+          min_score: 0.5
+          threshold: 0.6
+        bird:
+          min_area: 350    # raised from 100 — 139/139 recent "bird" events fell entirely outside bird_feeder zone, low score band consistent with insect/leaf-flutter noise
+          min_score: 0.55  # raised from 0.35
+          threshold: 0.65  # raised from 0.45
+    zones:
+      backyard_zone:
+        coordinates: 0.218,0.232,0.968,0.083,1,0.251,1,0.999,0,0.999,0.042,0.837
+        objects:
+          - person
+          - dog
+      bird_feeder:
+        coordinates: 0.704,0.014,0.764,0.014,0.77,0.111,0.693,0.106
+        objects:
+          - bird
+    motion:
+      mask: []
+
+  front_floodlight:
+    # Reolink dual-lens panoramic floodlight — main stream is 7680x2160 (two 3840-wide
+    # lenses stitched side-by-side), NOT a standard single-lens 4K frame. Sub/detect
+    # stream is 1536x432, same panoramic aspect ratio. No zones yet — draw these once
+    # the unit is physically mounted/aimed; coordinates below are normalized so they'll
+    # need redrawing against the real panoramic framing, not copied from `front`.
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:{FRIGATE_FLOODLIGHT_PASS}@{FRIGATE_FLOODLIGHT_IP}:554/h264Preview_01_sub
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+        - path: rtsp://admin:{FRIGATE_FLOODLIGHT_PASS}@{FRIGATE_FLOODLIGHT_IP}:554/h264Preview_01_main
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+    detect:
+      enabled: true
+      width: 1536
+      height: 432
+      fps: 5   # conservative starting point — 3rd camera on the same CPU-only detector as front+backyard
+    objects:
+      track:
+        - person
+        - car
+        - dog
+      filters:
+        person:
+          min_area: 500
+          min_score: 0.5
+          threshold: 0.6
+          # Static-object false-positive sources confirmed via thumbnails — each is a
+          # stationary bin/object repeatedly misclassified as "person" (Frigate re-runs
+          # classification every frame regardless of motion; a track ending and
+          # immediately restarting on the same unmoving object looks like repeated new
+          # detections). Remove/adjust these masks once the objects are gone/relocated.
+          mask:
+            - 0.015,0.55,0.1,0.55,0.1,0.9,0.015,0.9    # trash can near neighbor's shed (2026-07-07)
+            - 0.58,0.0,0.65,0.0,0.65,0.19,0.58,0.19    # wood pallets against tree (2026-07-07)
+            - 0.94,0.48,0.99,0.48,0.99,0.69,0.94,0.69  # blue recycling bin, roofline corner (2026-07-13)
+            - 0.80,0.50,0.97,0.50,0.97,0.77,0.80,0.77  # parked motorcycle (2026-07-14; widened 2026-07-17 —
+                                                        # one real motorcycle event's box (x:0.896-0.936,
+                                                        # y:0.516-0.692) clipped just outside the original
+                                                        # 0.9/0.53 top-left corner and slipped through;
+                                                        # widened again 2026-07-18 — moved further left/down
+                                                        # to ~x:0.807-0.879, y:0.556-0.764 for the night
+            - 0.90,0.14,0.96,0.14,0.96,0.33,0.90,0.33  # fixed dark object at property-line hedge, right of
+                                                        # the truck parked in the neighbor's driveway (2026-07-17) —
+                                                        # 9 near-identical hits since 2026-07-16, day and night,
+                                                        # confirmed via thumbnail as static, not a real person.
+                                                        # Kept tight/separate from a nearby real-activity cluster
+                                                        # (people working near the trailer, x:0.80-0.87) confirmed
+                                                        # via thumbnail as genuine — not masked.
+        car:
+          min_area: 2000
+          min_score: 0.4
+          threshold: 0.5
+          mask:
+            # y-range (0.16-0.72) stops right at street_zone's boundary (0.0-0.16), so this doesn't affect code-enforcement OCR
+            - 0.69,0.16,0.99,0.16,0.99,0.72,0.69,0.72  # parked utility trailer (2026-07-14); widened 2026-07-18 —
+                                                        # trailer swapped out for the truck+camper, actual bounds
+                                                        # x:0.729-0.990, y:0.139-0.648 (top edge capped at 0.16
+                                                        # instead of the true 0.139 to avoid touching street_zone)
+            # Fixed object at base of yard tree, INSIDE street_zone (0.0-0.16) — misfired as "car" ~473
+            # times over 3 days (2026-07-14 to 2026-07-16), drowning out real traffic in the review queue.
+            # Bounding boxes from Frigate's own event log clustered tightly at x:0.47-0.68, y:0.0-0.13
+            # across 8+ independent events; padded slightly here. This does narrow street_zone's real
+            # coverage for this stretch of curb — the `front` camera's road_zone remains a second,
+            # independent source for the same stretch of street if this masks a real pass (2026-07-16).
+            - 0.44,0.0,0.70,0.0,0.70,0.15,0.44,0.15
+            # Explorer/SUV parked near the street overnight (2026-07-18) — x:0.413-0.511, y:0.042-0.134,
+            # padded slightly. INSIDE street_zone, same trade-off as the tree-base mask above: narrows real
+            # curb coverage for this stretch while the SUV sits here; `front`'s road_zone is the backup.
+            # Remove/relocate this mask if the SUV's overnight spot changes.
+            - 0.40,0.03,0.53,0.03,0.53,0.15,0.40,0.15
+        dog:
+          min_area: 1000
+          min_score: 0.5
+          threshold: 0.6
+    zones:
+      # Redrawn 2026-09-30 from a real post-mount snapshot (the original zones below
+      # were a single pre-mount draft, never revisited, and had drifted into both
+      # neighbors' yards — left edge overlapped the left neighbor's shed/bin area
+      # (see the trash-can mask above), right edge of driveway_zone ran almost to
+      # the frame edge, past the truck into the right neighbor's side). Trimmed both
+      # edges inward to landmarks visible in the frame: left edge now starts past the
+      # dense tree cluster that divides this yard from the neighbor's shed; driveway
+      # right edge pulled back from 0.98 to just past the truck's parking spot.
+      # Original for reference: yard_zone 0.07,0.1,0.62,0.05,0.62,0.55,0.75,0.9,0.05,0.92
+      #                          driveway_zone 0.75,0.15,0.98,0.12,0.98,0.95,0.75,0.95
+      yard_zone:
+        coordinates: 0.24,0.1,0.62,0.05,0.62,0.55,0.75,0.9,0.22,0.92
+        objects:
+          - person
+          - dog
+      driveway_zone:
+        coordinates: 0.75,0.15,0.91,0.12,0.91,0.95,0.75,0.95
+        objects:
+          - person
+          - car
+          - dog
+      street_zone:
+        # Curb/street strip along the top of the panoramic frame — added 2026-07-07
+        # as a second, better-framed source for code-enforcement OCR (the `front`
+        # camera's road_zone only captures a thin edge-of-frame sliver of vehicles
+        # here; this view shows a parked car as a clear, distinct shape). Widened
+        # 2026-07-13 — the truck that was parked in the driveway had been blocking
+        # part of this view; with it relocated, the street is visible much further
+        # right toward the frame edge than the original single-snapshot draft caught.
+        coordinates: 0.20,0.0,0.98,0.0,0.98,0.16,0.20,0.16
+        objects:
+          - car
+    motion:
+      mask: []
+
+# Add right_side and front_door cameras in Phase 3/4.
+version: 0.17-0

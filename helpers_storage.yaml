@@ -1,0 +1,325 @@
+# UI/ha-mcp-created helpers — exported from HA's .storage by tools/sync.py.
+# Read-only record: these live in HA's storage, not YAML. Edit via ha-mcp or the UI.
+counter:
+  unknown_visitors_week:
+    icon: mdi:account-question
+    initial: 0
+    maximum: null
+    minimum: null
+    name: Unknown Visitors Week
+    restore: true
+    step: 1
+input_boolean:
+  automation_bed_tv_camera_pip:
+    icon: mdi:picture-in-picture-top-right
+    name: Automation Bed TV Camera PiP
+  automation_cam_backyard:
+    icon: mdi:cctv
+    initial: true
+    name: Automation Cam Backyard
+  automation_cam_doorbell:
+    icon: mdi:doorbell
+    initial: true
+    name: Automation Cam Doorbell
+  automation_cam_driveway:
+    icon: mdi:cctv
+    initial: true
+    name: Automation Cam Driveway
+  automation_cam_lr:
+    icon: mdi:sofa
+    initial: true
+    name: Automation Cam LR
+  automation_cam_rear_driveway:
+    icon: mdi:cctv
+    initial: true
+    name: Automation Cam Rear Driveway
+  automation_cam_tilt:
+    icon: mdi:cctv
+    initial: true
+    name: Automation Cam Tilt
+  automation_plant_fescue:
+    icon: mdi:grass
+    initial: true
+    name: Automation Plant Fescue
+  automation_plant_green_giant:
+    icon: mdi:pine-tree
+    initial: true
+    name: Automation Plant Green Giant
+  automation_plant_indoor_tree:
+    icon: mdi:tree-outline
+    initial: true
+    name: Automation Plant Indoor Tree
+  backyard_mode_active:
+    icon: mdi:gate-open
+    name: Backyard Mode Active
+  camera_automations_enabled:
+    icon: mdi:cctv
+    initial: true
+    name: Camera Automations Enabled
+  door_recently_opened_back:
+    icon: mdi:door-open
+    name: Door Recently Opened Back
+  door_recently_opened_front:
+    icon: mdi:door-open
+    name: Door Recently Opened Front
+  floodlight_siren_escalation_enabled:
+    icon: mdi:alarm-light
+    initial: false
+    name: Floodlight Siren Escalation Enabled
+  irrigation_rain_skip:
+    icon: mdi:weather-rainy
+    initial: true
+    name: Irrigation Rain Skip
+  irrigation_sprinklers_enabled:
+    icon: mdi:sprinkler
+    initial: true
+    name: Irrigation Sprinklers Enabled
+  irrigation_trees_enabled:
+    icon: mdi:tree
+    initial: true
+    name: Irrigation Trees Enabled
+  riley_in_backyard:
+    icon: mdi:human-male
+    name: Riley In Backyard
+input_datetime:
+  irrigation_sprinklers_last_run:
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check
+    name: Irrigation Sprinklers Last Run
+  irrigation_trees_last_run:
+    has_date: true
+    has_time: true
+    icon: mdi:clock-check
+    name: Irrigation Trees Last Run
+  snooze_bed_tv_camera_pip:
+    has_date: true
+    has_time: true
+    icon: mdi:alarm-snooze
+    name: Snooze Bed TV Camera PiP
+  snooze_cam_backyard:
+    has_date: true
+    has_time: true
+    icon: mdi:alarm-snooze
+    name: Snooze Cam Backyard
+  snooze_cam_doorbell:
+    has_date: true
+    has_time: true
+    icon: mdi:alarm-snooze
+    name: Snooze Cam Doorbell
+  snooze_cam_driveway:
+    has_date: true
+    has_time: true
+    icon: mdi:alarm-snooze
+    name: Snooze Cam Driveway
+  snooze_cam_rear_driveway:
+    has_date: true
+    has_time: true
+    icon: mdi:alarm-snooze
+    name: Snooze Cam Rear Driveway
+  unknown_visitor_counter_reset:
+    has_date: true
+    has_time: true
+    icon: mdi:calendar-refresh
+    name: Unknown Visitor Counter Reset
+input_number:
+  mode_casual_brightness:
+    icon: mdi:brightness-5
+    max: 255.0
+    min: 10.0
+    mode: slider
+    name: Mode - Casual Brightness
+    step: 5.0
+  mode_casual_color_temp:
+    icon: mdi:thermometer
+    max: 6500.0
+    min: 2200.0
+    mode: slider
+    name: Mode - Casual Color Temp
+    step: 100.0
+    unit_of_measurement: K
+  mode_chill_brightness:
+    icon: mdi:brightness-3
+    max: 255.0
+    min: 10.0
+    mode: slider
+    name: Mode - Chill Brightness
+    step: 5.0
+  mode_chill_color_temp:
+    icon: mdi:thermometer
+    max: 6500.0
+    min: 2200.0
+    mode: slider
+    name: Mode - Chill Color Temp
+    step: 100.0
+    unit_of_measurement: K
+  mode_movie_brightness:
+    icon: mdi:movie
+    max: 255.0
+    min: 10.0
+    mode: slider
+    name: Mode - Movie Brightness
+    step: 5.0
+  mode_movie_color_temp:
+    icon: mdi:thermometer
+    max: 6500.0
+    min: 2200.0
+    mode: slider
+    name: Mode - Movie Color Temp
+    step: 100.0
+    unit_of_measurement: K
+  mode_working_brightness:
+    icon: mdi:brightness-7
+    max: 255.0
+    min: 10.0
+    mode: slider
+    name: Mode - Working Brightness
+    step: 5.0
+  mode_working_color_temp:
+    icon: mdi:thermometer
+    max: 6500.0
+    min: 2200.0
+    mode: slider
+    name: Mode - Working Color Temp
+    step: 100.0
+    unit_of_measurement: K
+  plant_fescue_target_high:
+    icon: mdi:grass
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Fescue Target High
+    step: 1.0
+    unit_of_measurement: '%'
+  plant_fescue_target_low:
+    icon: mdi:grass
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Fescue Target Low
+    step: 1.0
+    unit_of_measurement: '%'
+  plant_green_giant_target_high:
+    icon: mdi:pine-tree
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Green Giant Target High
+    step: 1.0
+    unit_of_measurement: '%'
+  plant_green_giant_target_low:
+    icon: mdi:pine-tree
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Green Giant Target Low
+    step: 1.0
+    unit_of_measurement: '%'
+  plant_indoor_tree_target_high:
+    icon: mdi:tree-outline
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Indoor Tree Target High
+    step: 1.0
+    unit_of_measurement: '%'
+  plant_indoor_tree_target_low:
+    icon: mdi:tree-outline
+    max: 100.0
+    min: 0.0
+    mode: slider
+    name: Plant Indoor Tree Target Low
+    step: 1.0
+    unit_of_measurement: '%'
+  unknown_visitor_threshold:
+    icon: mdi:alert-circle
+    initial: 5.0
+    max: 50.0
+    min: 1.0
+    mode: slider
+    name: Unknown Visitor Threshold
+    step: 1.0
+input_select:
+  house_lighting_mode:
+    icon: mdi:home-lightbulb
+    initial: Normal
+    name: House Lighting Mode
+    options:
+    - Normal
+    - Working
+    - Casual
+    - Chill
+    - Movie
+    - Party
+  lighting_mode_bedroom:
+    icon: mdi:ceiling-light-multiple
+    initial: Normal
+    name: Lighting Mode - Bedroom
+    options:
+    - Normal
+    - Working
+    - Casual
+    - Chill
+    - Movie
+    - Party
+  lighting_mode_kitchen:
+    icon: mdi:ceiling-light-multiple
+    initial: Normal
+    name: Lighting Mode - Kitchen
+    options:
+    - Normal
+    - Working
+    - Casual
+    - Chill
+    - Movie
+    - Party
+  lighting_mode_living_room:
+    icon: mdi:ceiling-light-multiple
+    initial: Normal
+    name: Lighting Mode - Living Room
+    options:
+    - Normal
+    - Working
+    - Casual
+    - Chill
+    - Movie
+    - Party
+  party_color_bedroom:
+    icon: mdi:palette
+    initial: Purple
+    name: Party Color - Bedroom
+    options:
+    - Red
+    - Orange
+    - Yellow
+    - Green
+    - Teal
+    - Blue
+    - Purple
+    - Pink
+  party_color_kitchen:
+    icon: mdi:palette
+    initial: Green
+    name: Party Color - Kitchen
+    options:
+    - Red
+    - Orange
+    - Yellow
+    - Green
+    - Teal
+    - Blue
+    - Purple
+    - Pink
+  party_color_living_room:
+    icon: mdi:palette
+    initial: Blue
+    name: Party Color - Living Room
+    options:
+    - Red
+    - Orange
+    - Yellow
+    - Green
+    - Teal
+    - Blue
+    - Purple
+    - Pink

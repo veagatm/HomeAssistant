@@ -1,0 +1,155 @@
+title: Cameras
+path: cameras
+icon: mdi:cctv
+cards:
+
+  # ── Frigate NVR ───────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Frigate NVR
+    subtitle: "Reolink PoE · local RTSP · real-time detection"
+
+  - type: horizontal-stack
+    cards:
+      - type: picture-entity
+        entity: camera.front_yard_fluent
+        name: Front Yard
+        show_state: false
+      - type: picture-entity
+        entity: camera.backyard_fluent
+        name: Backyard
+        show_state: false
+
+  # Panoramic dual-lens camera (7680x2160 native) — full-width row, not squeezed into
+  # the 2-column grid above since its aspect ratio is much wider/shorter than the others.
+  - type: picture-entity
+    entity: camera.front_yard_floodlight_fluent
+    name: Front Yard Floodlight
+    show_state: false
+
+  - type: custom:mushroom-light-card
+    entity: light.front_yard_floodlight_floodlight
+    name: Floodlight
+    show_brightness_control: true
+    show_color_temp_control: true
+    use_light_color: true
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: select.front_yard_floodlight_floodlight_mode
+        name: Mode
+        icon: mdi:spotlight-beam
+      - type: custom:mushroom-entity-card
+        entity: binary_sensor.front_yard_floodlight_person
+        name: Person
+        icon: mdi:human-male
+        icon_color: >
+          {{ 'red' if is_state('binary_sensor.front_yard_floodlight_person', 'on') else 'disabled' }}
+      - type: custom:mushroom-entity-card
+        entity: binary_sensor.front_yard_floodlight_vehicle
+        name: Vehicle
+        icon: mdi:car
+        icon_color: >
+          {{ 'orange' if is_state('binary_sensor.front_yard_floodlight_vehicle', 'on') else 'disabled' }}
+
+  # ── Backyard Intelligence ─────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Backyard Intelligence
+    subtitle: "Identity matching · zone detection"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.riley_in_backyard
+        name: Riley in Yard
+        icon: mdi:human-male
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.riley_in_backyard', 'on') else 'disabled' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.backyard_mode_active
+        name: Backyard Mode
+        icon: mdi:gate-open
+        icon_color: >
+          {{ 'teal' if is_state('input_boolean.backyard_mode_active', 'on') else 'disabled' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.camera_automations_enabled
+        name: Cam Alerts
+        icon: mdi:cctv
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.camera_automations_enabled', 'on') else 'red' }}
+        tap_action:
+          action: toggle
+
+  - type: custom:mushroom-template-card
+    primary: Unknown Visitors This Week
+    secondary: >
+      {% set count = states('counter.unknown_visitors_week') | int(0) %}
+      {% set threshold = states('input_number.unknown_visitor_threshold') | int(5) %}
+      {{ count }} detected · alert threshold: {{ threshold }}
+    icon: mdi:account-question
+    icon_color: >
+      {% set count = states('counter.unknown_visitors_week') | int(0) %}
+      {% set threshold = states('input_number.unknown_visitor_threshold') | int(5) %}
+      {{ 'red' if count >= threshold else 'grey' }}
+
+  # ── Bird Feeder ───────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Bird Feeder
+    subtitle: "Frigate bird classification · daily species counter"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.last_bird_seen
+        name: Last Bird
+        icon: mdi:feather
+        secondary_info: last-updated
+      - type: custom:mushroom-entity-card
+        entity: sensor.last_bird_time
+        name: Last Seen
+        icon: mdi:clock-outline
+        secondary_info: relative-time
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: sensor.birds_today_total
+        name: Sightings Today
+        icon: mdi:bird
+        icon_color: teal
+      - type: custom:mushroom-entity-card
+        entity: sensor.birds_today_unique
+        name: Species Today
+        icon: mdi:format-list-bulleted
+        icon_color: green
+      - type: custom:mushroom-entity-card
+        entity: sensor.birds_lifetime_unique
+        name: Lifetime Species
+        icon: mdi:counter
+        icon_color: blue
+
+  - type: custom:mushroom-template-card
+    primary: Today's Species
+    secondary: >
+      {% set raw = states('sensor.birds_today_list') %}
+      {% if raw in ['unknown', 'unavailable', ''] %}
+        No birds yet today
+      {% else %}
+        {% set list = raw | from_json %}
+        {% for item in list %}{{ item.species }} ({{ item.count }}){% if not loop.last %} · {% endif %}{% endfor %}
+      {% endif %}
+    icon: mdi:bird
+    icon_color: teal
+
+  # ── Frigate Host ──────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Frigate Host
+    subtitle: "Mac Mini · Colima · Docker"
+
+  - type: custom:mushroom-entity-card
+    entity: binary_sensor.192_168_68_142
+    name: Mac Mini
+    icon: mdi:desktop-classic
+    secondary_info: last-changed
+    icon_color: >
+      {{ 'green' if is_state('binary_sensor.192_168_68_142', 'on') else 'red' }}

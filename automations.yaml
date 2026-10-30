@@ -1,0 +1,3551 @@
+- id: lr_motion_on
+  alias: LR - Motion On → Lights
+  description: Turn on lights on motion; restore memory scene if within 30-min window
+  triggers:
+  - entity_id: binary_sensor.mmw_motion_sensor_occupancy
+    to: 'on'
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_lr_motion'', ''timestamp'')
+      %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.roku_ultra
+      state: playing
+    - condition: state
+      entity_id: media_player.roku_ultra
+      state: paused
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_lr
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_lr'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.memory_lights_lr_off_at'',
+          ''timestamp'') %} {{ ts is not none and (now().timestamp() - ts) < 1800
+          }}
+
+          '
+      - condition: state
+        entity_id: light.living_room
+        state: 'off'
+      sequence:
+      - target:
+          entity_id: scene.memory_lights_lr
+        action: scene.turn_on
+    default:
+    - condition: state
+      entity_id: sensor.mmw_motion_sensor_illumination
+      state: dim
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_living_room
+          state: Working
+        sequence:
+        - target:
+            entity_id:
+            - light.living_room
+            - light.lamp
+          data:
+            brightness: '{{ states(''input_number.mode_working_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+              | int }}'
+            transition: 2
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_living_room
+          state: Casual
+        sequence:
+        - target:
+            entity_id:
+            - light.living_room
+            - light.lamp
+          data:
+            brightness: '{{ states(''input_number.mode_casual_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'')
+              | int }}'
+            transition: 3
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_living_room
+          state: Chill
+        sequence:
+        - target:
+            entity_id:
+            - light.living_room
+            - light.lamp
+          data:
+            brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_living_room
+          state: Movie
+        sequence:
+        - target:
+            entity_id:
+            - light.living_room
+            - light.lamp
+          data:
+            brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_living_room
+          state: Party
+        sequence:
+        - target:
+            entity_id:
+            - light.living_room
+            - light.lamp
+          data:
+            rgb_color:
+            - '{% set c = states(''input_select.party_color_living_room'') %}{% if
+              c == ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow''
+              %}255{% elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c ==
+              ''Blue'' %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+            - '{% set c = states(''input_select.party_color_living_room'') %}{% if
+              c == ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow''
+              %}200{% elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif
+              c == ''Blue'' %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+            - '{% set c = states(''input_select.party_color_living_room'') %}{% if
+              c == ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{%
+              elif c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue''
+              %}255{% elif c == ''Purple'' %}255{% else %}150{% endif %}'
+            brightness: 204
+            transition: 2
+          action: light.turn_on
+      default:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}51
+
+            {% elif h >= 6 and h < 9 %}178
+
+            {% elif h >= 9 and h < 17 %}255
+
+            {% else %}191{% endif %}
+
+            '
+          color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}2200
+
+            {% elif h >= 6 and h < 9 %}2700
+
+            {% elif h >= 9 and h < 17 %}4000
+
+            {% else %}2500{% endif %}
+
+            '
+          transition: 1
+        action: light.turn_on
+  mode: restart
+- id: lr_motion_off
+  alias: LR - No Motion 10 min → Snapshot & Lights Off
+  description: Snapshot scene for memory lights then turn off; falls back to plain
+    off if memory lights disabled
+  triggers:
+  - entity_id: binary_sensor.mmw_motion_sensor_occupancy
+    to: 'off'
+    for:
+      minutes: 10
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_lr_motion'', ''timestamp'')
+      %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.roku_ultra
+      state: playing
+    - condition: state
+      entity_id: media_player.roku_ultra
+      state: paused
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_lr
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_lr'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: state
+        entity_id: light.living_room
+        state: 'on'
+      sequence:
+      - data:
+          scene_id: memory_lights_lr
+          snapshot_entities:
+          - light.living_room
+          - light.lamp
+        action: scene.create
+      - target:
+          entity_id: input_datetime.memory_lights_lr_off_at
+        data:
+          datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+        action: input_datetime.set_datetime
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        action: light.turn_off
+    default:
+    - target:
+        entity_id:
+        - light.living_room
+        - light.lamp
+      action: light.turn_off
+- id: lr_tv_on_pre_movie
+  alias: LR - TV On → Pre-Movie Mode
+  trigger:
+  - platform: state
+    entity_id: media_player.living_room_tv
+    to: 'on'
+    for: 00:00:02
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+    data:
+      brightness: 204
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 3
+- id: lr_tv_playing
+  alias: LR - TV Playing → Movie Mode
+  triggers:
+  - entity_id: media_player.roku_ultra
+    to: playing
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  actions:
+  - target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+    data:
+      brightness: '{{ iif(states(''sensor.mmw_motion_sensor_illumination'') == ''bright'',
+        26, 13) }}
+
+        '
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 3
+    action: light.turn_on
+- id: lr_tv_paused_idle
+  alias: LR - TV Paused/Idle → Pre-Movie Red
+  trigger:
+  - platform: state
+    entity_id: media_player.roku_ultra
+    to:
+    - paused
+    - idle
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  action:
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+    data:
+      brightness: 204
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 2
+- id: lr_tv_off
+  alias: LR - TV Off → Restore
+  triggers:
+  - entity_id: media_player.roku_ultra
+    to:
+    - 'off'
+    - standby
+    - unavailable
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_living_room
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.mmw_motion_sensor_occupancy
+        state: 'on'
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{% set h = now().hour + now().minute / 60 %} {% if h >= 22
+            or h < 6 %}51 {% elif h >= 6 and h < 9 %}178 {% elif h >= 9 and h < 17
+            %}255 {% else %}191{% endif %}
+
+            '
+          color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %} {% if h
+            >= 22 or h < 6 %}2200 {% elif h >= 6 and h < 9 %}2700 {% elif h >= 9 and
+            h < 17 %}4000 {% else %}2500{% endif %}
+
+            '
+          transition: 3
+        action: light.turn_on
+    default:
+    - target:
+        entity_id:
+        - light.living_room
+        - light.lamp
+      action: light.turn_off
+- id: bed_motion_on
+  alias: Bed - Motion On → Lights
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.bedroom_motion_sensor_occupancy
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.bed_manual_mode
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'off'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_bed_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.bedroom_tv_2
+      state: playing
+    - condition: state
+      entity_id: media_player.bedroom_tv_2
+      state: paused
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_bed
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_bed'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.memory_lights_bed_off_at'',
+          ''timestamp'') %} {{ ts is not none and (now().timestamp() - ts) < 1800
+          }}
+
+          '
+      - condition: state
+        entity_id: light.bedroom
+        state: 'off'
+      sequence:
+      - target:
+          entity_id: scene.memory_lights_bed
+        action: scene.turn_on
+    default:
+    - condition: template
+      value_template: '{{ states(''sensor.bedroom_motion_sensor_illuminance'') | float(0)
+        < 80 }}
+
+        '
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_bedroom
+          state: Working
+        sequence:
+        - target:
+            entity_id:
+            - light.bedroom
+            - light.govee_lamp_1
+          data:
+            brightness: '{{ states(''input_number.mode_working_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+              | int }}'
+            transition: 2
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_bedroom
+          state: Casual
+        sequence:
+        - target:
+            entity_id:
+            - light.bedroom
+            - light.govee_lamp_1
+          data:
+            brightness: '{{ states(''input_number.mode_casual_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'')
+              | int }}'
+            transition: 3
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_bedroom
+          state: Chill
+        sequence:
+        - target:
+            entity_id:
+            - light.bedroom
+            - light.govee_lamp_1
+          data:
+            brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_bedroom
+          state: Movie
+        sequence:
+        - target:
+            entity_id:
+            - light.bedroom
+            - light.govee_lamp_1
+          data:
+            brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_bedroom
+          state: Party
+        sequence:
+        - target:
+            entity_id:
+            - light.bedroom
+            - light.govee_lamp_1
+          data:
+            rgb_color:
+            - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+              ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow'' %}255{%
+              elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c == ''Blue''
+              %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+            - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+              ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow'' %}200{%
+              elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif c == ''Blue''
+              %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+            - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+              ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{%
+              elif c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue''
+              %}255{% elif c == ''Purple'' %}255{% else %}150{% endif %}'
+            brightness: 204
+            transition: 2
+          action: light.turn_on
+      default:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}51
+
+            {% elif h < 8.5 %}51
+
+            {% elif h < 9 %}153
+
+            {% elif h < 17 %}255
+
+            {% else %}191{% endif %}
+
+            '
+          color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}2200
+
+            {% elif h < 8.5 %}2200
+
+            {% elif h < 9 %}2700
+
+            {% elif h < 17 %}4000
+
+            {% else %}2500{% endif %}
+
+            '
+          transition: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 6 and h < 8.5 %}90
+
+            {% elif h >= 8.5 and h < 9 %}15
+
+            {% else %}1{% endif %}
+
+            '
+        action: light.turn_on
+  mode: restart
+- id: bed_motion_off
+  alias: Bed - No Motion 15 min → Snapshot & Lights Off
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.bedroom_motion_sensor_occupancy
+    to: 'off'
+    for:
+      minutes: 15
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'off'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_bed_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.bedroom_tv_2
+      state: playing
+    - condition: state
+      entity_id: media_player.bedroom_tv_2
+      state: paused
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_bed
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_bed'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: state
+        entity_id: light.bedroom
+        state: 'on'
+      sequence:
+      - service: scene.create
+        data:
+          scene_id: memory_lights_bed
+          snapshot_entities:
+          - light.bedroom
+          - light.govee_lamp_1
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.memory_lights_bed_off_at
+        data:
+          datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+      - service: light.turn_off
+        target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+    default:
+    - service: light.turn_off
+      target:
+        entity_id:
+        - light.bedroom
+        - light.govee_lamp_1
+- id: bed_tv_on_pre_movie
+  alias: Bed - TV On → Pre-Movie Mode
+  trigger:
+  - platform: state
+    entity_id: media_player.bedroom_tv_2_2
+    to: 'on'
+    for: 00:00:02
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.bed_1
+      - light.bed_2
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.tall_lamp
+      - light.lamp_2
+      - light.govee_lamp_1
+    data:
+      brightness: 204
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 3
+- id: bed_tv_playing
+  alias: Bed - TV Playing → Movie Mode
+  trigger:
+  - platform: state
+    entity_id: media_player.bedroom_tv_2
+    to: playing
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.bed_1
+      - light.bed_2
+      - light.tall_lamp
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.lamp_2
+      - light.govee_lamp_1
+    data:
+      brightness: 51
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 3
+- id: bed_tv_paused_idle
+  alias: Bed - TV Paused/Idle → Pre-Movie Red
+  trigger:
+  - platform: state
+    entity_id: media_player.bedroom_tv_2
+    to:
+    - paused
+    - idle
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  action:
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.bed_1
+      - light.bed_2
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.tall_lamp
+      - light.lamp_2
+      - light.govee_lamp_1
+    data:
+      brightness: 204
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 2
+- id: bed_tv_off
+  alias: Bed - TV Off → Restore
+  trigger:
+  - platform: state
+    entity_id: media_player.bedroom_tv_2
+    to:
+    - 'off'
+    - standby
+    - unavailable
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.bed_manual_mode
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'off'
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.bedroom_motion_sensor_occupancy
+        state: 'on'
+      sequence:
+      - service: light.turn_on
+        target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{% set h = now().hour + now().minute / 60 %} {% if h >= 22
+            or h < 6 %}51 {% elif h >= 6 and h < 9 %}178 {% elif h >= 9 and h < 17
+            %}255 {% else %}191{% endif %}
+
+            '
+          color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %} {% if h
+            >= 22 or h < 6 %}2200 {% elif h >= 6 and h < 9 %}2700 {% elif h >= 9 and
+            h < 17 %}4000 {% else %}2500{% endif %}
+
+            '
+          transition: 3
+    default:
+    - service: light.turn_off
+      target:
+        entity_id:
+        - light.bedroom
+        - light.govee_lamp_1
+- id: bed_sw_single
+  alias: Bed Switch - Single → Toggle Lights
+  trigger:
+  - platform: mqtt
+    topic: zigbee2mqtt/bedroom switch/action
+    payload: single
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id:
+      - input_boolean.bed_manual_mode
+      - input_boolean.sleep_mode_active
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: light.bedroom
+        state: 'on'
+      sequence:
+      - service: light.turn_off
+        target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+    default:
+    - service: light.turn_on
+      target:
+        entity_id:
+        - light.bedroom
+        - light.govee_lamp_1
+      data:
+        brightness: '{% set h = now().hour + now().minute / 60 %} {% if h >= 22 or
+          h < 6 %}51 {% elif h >= 6 and h < 9 %}178 {% elif h >= 9 and h < 17 %}255
+          {% else %}191{% endif %}
+
+          '
+        color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %} {% if h >=
+          22 or h < 6 %}2200 {% elif h >= 6 and h < 9 %}2700 {% elif h >= 9 and h
+          < 17 %}4000 {% else %}2500{% endif %}
+
+          '
+        transition: 1
+- id: bed_sw_double
+  alias: Bed Switch - Double → Movie Mode
+  trigger:
+  - platform: mqtt
+    topic: zigbee2mqtt/bedroom switch/action
+    payload: double
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.bed_manual_mode
+  - service: scene.turn_on
+    target:
+      entity_id: scene.bedroom_red
+  - service: light.turn_on
+    target:
+      entity_id: light.govee_lamp_1
+    data:
+      brightness: 51
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      transition: 2
+- id: bed_sw_hold
+  alias: Bed Switch - Hold → Good Night (All Lights Off)
+  trigger:
+  - platform: mqtt
+    topic: zigbee2mqtt/bedroom switch/action
+    payload: hold
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.sleep_mode_active
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.bed_manual_mode
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.bedroom
+      - light.govee_lamp_1
+      - light.kitchen
+      - light.lightstrip
+      - light.hallway
+      - light.foyer
+- id: bed_manual_mode_expire
+  alias: Bed - Manual Mode Auto-Expire (30 min)
+  trigger:
+  - platform: state
+    entity_id: input_boolean.bed_manual_mode
+    to: 'on'
+    for:
+      minutes: 30
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.bed_manual_mode
+- id: bed_sleep_mode_expire
+  alias: Bed - Sleep Mode Expires at 10am
+  trigger:
+  - platform: time
+    at: '10:00:00'
+  condition:
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'on'
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.sleep_mode_active
+- id: bed_sleep_routine
+  alias: Bed - Sleep Routine (Vibration at Night)
+  description: Bed-frame vibration detected at night → sleep mode on, all main lights
+    off
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_3_vibration
+    to: 'on'
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.automation_sleep_mode
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_sleep_mode'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: or
+    conditions:
+    - condition: time
+      after: '22:00:00'
+    - condition: time
+      before: 05:30:00
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.sleep_mode_active
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.bed_manual_mode
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.bedroom
+      - light.govee_lamp_1
+      - light.living_room
+      - light.lamp
+      - light.hallway
+- id: bed_wake_routine
+  alias: Bed - Wake Routine (Vibration in Morning)
+  description: Bed-frame vibration in 5:30–9:00 window → clear sleep mode, gentle
+    light ramp
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_3_vibration
+    to: 'on'
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.automation_wake_mode
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_wake_mode'', ''timestamp'')
+      %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: time
+    after: 05:30:00
+    before: 09:00:00
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.sleep_mode_active
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.bedroom
+      - light.govee_lamp_1
+    data:
+      brightness: 51
+      color_temp_kelvin: 2700
+      transition: 60
+- id: kit_motion_on
+  alias: Kitchen - Motion On → Lights
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.kitchen_motion_sensor_occupancy
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_kitchen
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_kit_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_kit
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_kit'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.memory_lights_kit_off_at'',
+          ''timestamp'') %} {{ ts is not none and (now().timestamp() - ts) < 1800
+          }}
+
+          '
+      - condition: state
+        entity_id: light.kitchen
+        state: 'off'
+      sequence:
+      - target:
+          entity_id: scene.memory_lights_kit
+        action: scene.turn_on
+    default:
+    - choose:
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_kitchen
+          state: Working
+        sequence:
+        - target:
+            entity_id:
+            - light.kitchen
+            - light.lightstrip
+          data:
+            brightness: '{{ states(''input_number.mode_working_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+              | int }}'
+            transition: 2
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_kitchen
+          state: Casual
+        sequence:
+        - target:
+            entity_id:
+            - light.kitchen
+            - light.lightstrip
+          data:
+            brightness: '{{ states(''input_number.mode_casual_brightness'') | int
+              }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'')
+              | int }}'
+            transition: 3
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_kitchen
+          state: Chill
+        sequence:
+        - target:
+            entity_id:
+            - light.kitchen
+            - light.lightstrip
+          data:
+            brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_kitchen
+          state: Movie
+        sequence:
+        - target:
+            entity_id:
+            - light.kitchen
+            - light.lightstrip
+          data:
+            brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+            color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'')
+              | int }}'
+            transition: 5
+          action: light.turn_on
+      - conditions:
+        - condition: state
+          entity_id: input_select.lighting_mode_kitchen
+          state: Party
+        sequence:
+        - target:
+            entity_id:
+            - light.kitchen
+            - light.lightstrip
+          data:
+            rgb_color:
+            - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+              ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow'' %}255{%
+              elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c == ''Blue''
+              %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+            - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+              ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow'' %}200{%
+              elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif c == ''Blue''
+              %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+            - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+              ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{%
+              elif c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue''
+              %}255{% elif c == ''Purple'' %}255{% else %}150{% endif %}'
+            brightness: 204
+            transition: 2
+          action: light.turn_on
+      default:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          brightness: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}51
+
+            {% elif h >= 6 and h < 9 %}178
+
+            {% elif h >= 9 and h < 17 %}255
+
+            {% else %}191{% endif %}
+
+            '
+          color_temp_kelvin: '{% set h = now().hour + now().minute / 60 %}
+
+            {% if h >= 22 or h < 6 %}2200
+
+            {% elif h >= 6 and h < 9 %}2700
+
+            {% elif h >= 9 and h < 17 %}4000
+
+            {% else %}2500{% endif %}
+
+            '
+          transition: 1
+        action: light.turn_on
+  mode: restart
+- id: kit_motion_off
+  alias: Kitchen - No Motion 20 min → Snapshot & Lights Off
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.kitchen_motion_sensor_occupancy
+    to: 'off'
+    for:
+      minutes: 20
+  condition:
+  - condition: state
+    entity_id: input_boolean.automations_kitchen
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_kit_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.automation_memory_lights_kit
+        state: 'on'
+      - condition: template
+        value_template: '{% set ts = state_attr(''input_datetime.snooze_memory_lights_kit'',
+          ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+          '
+      - condition: state
+        entity_id: light.kitchen
+        state: 'on'
+      sequence:
+      - service: scene.create
+        data:
+          scene_id: memory_lights_kit
+          snapshot_entities:
+          - light.kitchen
+          - light.lightstrip
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.memory_lights_kit_off_at
+        data:
+          datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+      - service: light.turn_off
+        target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+    default:
+    - service: light.turn_off
+      target:
+        entity_id:
+        - light.kitchen
+        - light.lightstrip
+- id: hall_motion_on
+  alias: Hallway - Motion On → Lights
+  mode: restart
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.hallway_motion_sensor_occupancy
+    to: 'on'
+  condition:
+  - condition: state
+    entity_id: input_boolean.automation_hall_motion
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_hall_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  action:
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.hallway
+      - light.hall_1
+      - light.hall_2
+    data:
+      brightness: '{% set h = now().hour + now().minute / 60 %} {% if h >= 22 or h
+        < 6 %}38 {% elif h >= 6 and h < 9 %}178 {% else %}220{% endif %}
+
+        '
+      transition: 1
+- id: hall_motion_off
+  alias: Hallway - No Motion 5 min → Lights Off
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.hallway_motion_sensor_occupancy
+    to: 'off'
+    for:
+      minutes: 5
+  condition:
+  - condition: state
+    entity_id: input_boolean.automation_hall_motion
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_hall_motion'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  action:
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.hallway
+      - light.hall_1
+      - light.hall_2
+- id: lau_washer_started
+  alias: Laundry - Washer Started
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_1_vibration
+    to: 'on'
+  action:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.washer_started_at
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+- id: lau_washer_done
+  alias: Laundry - Washer Done
+  description: Vibration stops after 15+ min run → notify both phones + TTS
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_1_vibration
+    to: 'off'
+    for:
+      minutes: 3
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automation_washer_alert
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_washer_alert'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: template
+    value_template: "{% set started = states('input_datetime.washer_started_at') %}\n{%
+      if started in ('unknown', 'unavailable') %}false\n{% else %}\n  {{ (now().timestamp()
+      - as_timestamp(started)) > 900 }}\n{% endif %}"
+  actions:
+  - data:
+      title: "\U0001F9FA Washer Done"
+      message: Time to move the clothes to the dryer!
+      data:
+        ttl: 0
+        priority: high
+    action: notify.all_phones
+  - target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: Hey, the washer is done! Time to move the clothes.
+    action: tts.speak
+- id: lau_dryer_started
+  alias: Laundry - Dryer Started
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_2_vibration
+    to: 'on'
+  action:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.dryer_started_at
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+- id: lau_dryer_done
+  alias: Laundry - Dryer Done
+  description: Vibration stops after 15+ min run → notify both phones + TTS
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.vibration_sensor_2_vibration
+    to: 'off'
+    for:
+      minutes: 3
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automation_dryer_alert
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_dryer_alert'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: template
+    value_template: "{% set started = states('input_datetime.dryer_started_at') %}\n{%
+      if started in ('unknown', 'unavailable') %}false\n{% else %}\n  {{ (now().timestamp()
+      - as_timestamp(started)) > 900 }}\n{% endif %}"
+  actions:
+  - data:
+      title: "\U0001F300 Dryer Done"
+      message: Clothes are dry — don't let them wrinkle!
+      data:
+        ttl: 0
+        priority: high
+    action: notify.all_phones
+  - target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: Hey, the dryer is done!
+    action: tts.speak
+- id: presence_away_mode
+  alias: Presence - Away Mode (Both Gone 5 min)
+  description: Both phones leave home zone → Ecobee away, all lights off, notify
+  trigger:
+  - platform: state
+    entity_id: person.riley_hollis
+    to: not_home
+    for:
+      minutes: 5
+  - platform: state
+    entity_id: person.cassandra_quinlan
+    to: not_home
+    for:
+      minutes: 5
+  condition:
+  - condition: state
+    entity_id: input_boolean.automation_away_mode
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_away_mode'', ''timestamp'')
+      %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: state
+    entity_id: person.riley_hollis
+    state: not_home
+  - condition: state
+    entity_id: person.cassandra_quinlan
+    state: not_home
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.away_mode_active
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.kitchen
+      - light.lightstrip
+      - light.hallway
+      - light.foyer
+      - light.bedroom
+      - light.govee_lamp_1
+      - light.dining_1
+      - light.dining_2
+      - light.dining_3
+      - light.porch
+      - light.porch_2
+  - service: climate.set_preset_mode
+    target:
+      entity_id: climate.ecobee
+    data:
+      preset_mode: away
+  - service: notify.all_phones
+    data:
+      title: "\U0001F3E0 Away Mode On"
+      message: Lights off, Ecobee set to away. Both phones left home.
+- id: presence_arriving_home
+  alias: Presence - Arriving Home (First Person Back)
+  description: First person returns after away mode → entry lights on, Ecobee home
+  trigger:
+  - platform: state
+    entity_id: person.riley_hollis
+    to: home
+  - platform: state
+    entity_id: person.cassandra_quinlan
+    to: home
+  condition:
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.automation_arriving_home
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_arriving_home'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.away_mode_active
+  - service: climate.set_preset_mode
+    target:
+      entity_id: climate.ecobee
+    data:
+      preset_mode: home
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.foyer
+      - light.hallway
+    data:
+      brightness: 178
+      color_temp_kelvin: 2700
+      transition: 2
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: 'Welcome home, {{ trigger.to_state.attributes.friendly_name }}!
+
+        '
+- id: sys_internet_down
+  alias: System - Internet Down → Alert
+  description: Ping 8.8.8.8 fails 2 min → TTS + flash Govee lamps red + persistent
+    notification
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.ping_google
+    to: 'off'
+    for:
+      minutes: 2
+  - platform: state
+    entity_id: binary_sensor.ping_google
+    to: unavailable
+    for:
+      minutes: 2
+  condition:
+  - condition: state
+    entity_id: input_boolean.automation_internet_outage
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_internet_outage'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  action:
+  - service: persistent_notification.create
+    data:
+      title: ⚠️ Internet Down
+      message: Ping to 8.8.8.8 failing for 2+ min. Check the Deco router.
+      notification_id: internet_outage
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: 'Alert: the internet connection appears to be down.'
+  - service: light.turn_on
+    target:
+      entity_id:
+      - light.govee_lamp_1
+      - light.lamp
+    data:
+      rgb_color:
+      - 255
+      - 0
+      - 0
+      brightness: 255
+      transition: 1
+  - delay:
+      seconds: 5
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.govee_lamp_1
+      - light.lamp
+- id: sys_internet_up
+  alias: System - Internet Restored → Clear Alert
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.ping_google
+    to: 'on'
+  action:
+  - service: persistent_notification.dismiss
+    data:
+      notification_id: internet_outage
+- id: home_trash_reminder
+  alias: Home - Trash Reminder
+  description: Kitchen motion after 7pm when trash_night is on → TTS, then auto-snooze
+    2hr
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.kitchen_motion_sensor_occupancy
+    to: 'on'
+  condition:
+  - condition: state
+    entity_id: input_boolean.trash_night
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.automation_trash_reminder
+    state: 'on'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_trash_reminder'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}
+
+      '
+  - condition: time
+    after: '19:00:00'
+    before: '23:00:00'
+  action:
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: 'Hey, reminder: tonight is trash night. Don''t forget to take it out!'
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_trash_reminder
+    data:
+      datetime: '{{ (now() + timedelta(hours=2)) | as_timestamp | timestamp_custom(''%Y-%m-%d
+        %H:%M:%S'') }}
+
+        '
+- id: home_trash_night_reset
+  alias: Home - Trash Night Reset at Midnight
+  description: Auto-clear trash_night flag and its snooze at midnight so it doesn't
+    carry over
+  trigger:
+  - platform: time
+    at: 00:01:00
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.trash_night
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_trash_reminder
+    data:
+      datetime: '1970-01-01 00:00:00'
+- id: home_restore_kitchen_panel
+  alias: Home - Restore Kitchen Panel After Media Stops
+  description: Re-casts kitchen dashboard 2 min after media stops (long enough for
+    Max to load) or 60s after HA startup
+  triggers:
+  - platform: state
+    entity_id: media_player.kitchen_speaker
+    to:
+    - idle
+    - 'off'
+    for:
+      minutes: 2
+    id: media_stopped
+  - platform: homeassistant
+    event: start
+    id: ha_start
+  actions:
+  - if:
+    - condition: trigger
+      id: ha_start
+    then:
+    - delay:
+        seconds: 60
+  - action: cast.show_lovelace_view
+    data:
+      entity_id: media_player.kitchen_speaker
+      dashboard_path: kitchen-panel
+      view_path: default
+  mode: restart
+- id: '1778771847281'
+  alias: Bed - Lighting Mode Changed → Update Lights
+  triggers:
+  - platform: state
+    entity_id: input_select.lighting_mode_bedroom
+  conditions:
+  - condition: state
+    entity_id: light.bedroom
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_bedroom
+        state: Working
+      sequence:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{{ states(''input_number.mode_working_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+            | int }}'
+          transition: 2
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_bedroom
+        state: Casual
+      sequence:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{{ states(''input_number.mode_casual_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'') |
+            int }}'
+          transition: 3
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_bedroom
+        state: Chill
+      sequence:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_bedroom
+        state: Movie
+      sequence:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_bedroom
+        state: Party
+      sequence:
+      - target:
+          entity_id:
+          - light.bedroom
+          - light.govee_lamp_1
+        data:
+          rgb_color:
+          - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+            ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow'' %}255{%
+            elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c == ''Blue''
+            %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+          - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+            ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow'' %}200{%
+            elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif c == ''Blue''
+            %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+          - '{% set c = states(''input_select.party_color_bedroom'') %}{% if c ==
+            ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{% elif
+            c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue'' %}255{%
+            elif c == ''Purple'' %}255{% else %}150{% endif %}'
+          brightness: 204
+          transition: 2
+        action: light.turn_on
+    default: []
+  mode: restart
+- id: '1778771855784'
+  alias: LR - Lighting Mode Changed → Update Lights
+  triggers:
+  - entity_id: input_select.lighting_mode_living_room
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: light.living_room
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Working
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{{ states(''input_number.mode_working_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+            | int }}'
+          transition: 2
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Casual
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{{ states(''input_number.mode_casual_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'') |
+            int }}'
+          transition: 3
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Chill
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.living_room_blinds
+        data:
+          position: 50
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Movie
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Party
+      sequence:
+      - target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+        data:
+          rgb_color:
+          - '{% set c = states(''input_select.party_color_living_room'') %}{% if c
+            == ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow'' %}255{%
+            elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c == ''Blue''
+            %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+          - '{% set c = states(''input_select.party_color_living_room'') %}{% if c
+            == ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow'' %}200{%
+            elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif c == ''Blue''
+            %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+          - '{% set c = states(''input_select.party_color_living_room'') %}{% if c
+            == ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{%
+            elif c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue''
+            %}255{% elif c == ''Purple'' %}255{% else %}150{% endif %}'
+          brightness: 204
+          transition: 2
+        action: light.turn_on
+    default: []
+  mode: restart
+- id: '1778771864288'
+  alias: Kitchen - Lighting Mode Changed → Update Lights
+  triggers:
+  - entity_id: input_select.lighting_mode_kitchen
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: light.kitchen
+    state: 'on'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Working
+      sequence:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          brightness: '{{ states(''input_number.mode_working_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_working_color_temp'')
+            | int }}'
+          transition: 2
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          brightness: '{{ states(''input_number.mode_casual_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'') |
+            int }}'
+          transition: 3
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Movie
+      sequence:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+          color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'') |
+            int }}'
+          transition: 5
+        action: light.turn_on
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Party
+      sequence:
+      - target:
+          entity_id:
+          - light.kitchen
+          - light.lightstrip
+        data:
+          rgb_color:
+          - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+            ''Red'' %}255{% elif c == ''Orange'' %}255{% elif c == ''Yellow'' %}255{%
+            elif c == ''Green'' %}0{% elif c == ''Teal'' %}0{% elif c == ''Blue''
+            %}0{% elif c == ''Purple'' %}150{% else %}255{% endif %}'
+          - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+            ''Red'' %}0{% elif c == ''Orange'' %}87{% elif c == ''Yellow'' %}200{%
+            elif c == ''Green'' %}200{% elif c == ''Teal'' %}200{% elif c == ''Blue''
+            %}100{% elif c == ''Purple'' %}0{% else %}0{% endif %}'
+          - '{% set c = states(''input_select.party_color_kitchen'') %}{% if c ==
+            ''Red'' %}0{% elif c == ''Orange'' %}0{% elif c == ''Yellow'' %}0{% elif
+            c == ''Green'' %}0{% elif c == ''Teal'' %}150{% elif c == ''Blue'' %}255{%
+            elif c == ''Purple'' %}255{% else %}150{% endif %}'
+          brightness: 204
+          transition: 2
+        action: light.turn_on
+    default: []
+  mode: restart
+- id: '1778771865833'
+  alias: House - Lighting Mode → Set All Rooms
+  description: When house-wide mode changes, cascade to all room selectors. Room mode-change
+    automations then update any lights that are on.
+  triggers:
+  - platform: state
+    entity_id: input_select.house_lighting_mode
+  actions:
+  - target:
+      entity_id:
+      - input_select.lighting_mode_bedroom
+      - input_select.lighting_mode_living_room
+      - input_select.lighting_mode_kitchen
+    data:
+      option: '{{ states(''input_select.house_lighting_mode'') }}'
+    action: input_select.select_option
+  mode: restart
+- id: '1778781312032'
+  alias: Plant - Fescue Grass Low Moisture Alert
+  description: 'Fescue soil moisture below 25% for 30 min → notify; 24-hr cooldown.
+    Healthy range: 30–50%.'
+  triggers:
+  - platform: numeric_state
+    entity_id: sensor.fescue_grass_soil_moisture_soil_moisture
+    below: 25
+    for: 00:30:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automation_plant_fescue
+    state: 'on'
+  actions:
+  - data:
+      title: "\U0001F33F Fescue Grass Needs Water"
+      message: 'Soil moisture at {{ states(''sensor.fescue_grass_soil_moisture_soil_moisture'')
+        | round(1) }}% — below 25% alert threshold. Healthy range: 30–50%.'
+    action: notify.all_phones
+  - delay:
+      hours: 24
+  mode: single
+  max_exceeded: silent
+- id: '1778781316068'
+  alias: Plant - Green Giant Low Moisture Alert
+  description: 'Green Giant soil moisture below 20% for 30 min → notify; 24-hr cooldown.
+    Healthy range: 35–50%.'
+  triggers:
+  - platform: numeric_state
+    entity_id: sensor.green_giant_soil_sensor_soil_moisture
+    below: 20
+    for: 00:30:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automation_plant_green_giant
+    state: 'on'
+  actions:
+  - data:
+      title: "\U0001F332 Green Giant Needs Water"
+      message: 'Soil moisture at {{ states(''sensor.green_giant_soil_sensor_soil_moisture'')
+        | round(1) }}% — below 20% alert threshold. Healthy range: 35–50%.'
+    action: notify.all_phones
+  - delay:
+      hours: 24
+  mode: single
+  max_exceeded: silent
+- id: '1778781317590'
+  alias: Plant - Indoor Tree Low Moisture Alert
+  description: 'Indoor tree (Mass Cane) soil moisture below 10% for 30 min → notify;
+    24-hr cooldown. Healthy range: 15–25%.'
+  triggers:
+  - platform: numeric_state
+    entity_id: sensor.indoor_tree_soil_moisture_soil_moisture
+    below: 10
+    for: 00:30:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automation_plant_indoor_tree
+    state: 'on'
+  actions:
+  - data:
+      title: "\U0001F333 Indoor Tree Needs Water"
+      message: 'Soil moisture at {{ states(''sensor.indoor_tree_soil_moisture_soil_moisture'')
+        | round(1) }}% — below 10% alert threshold. Healthy range: 15–25%.'
+    action: notify.all_phones
+  - delay:
+      hours: 24
+  mode: single
+  max_exceeded: silent
+- id: irrigation_sprinklers_schedule
+  alias: 'Irrigation: Sprinklers Morning'
+  description: Daily sprinkler run at 6:00 AM — runs first to prevent zone overlap
+    with trees
+  trigger:
+  - platform: time
+    at: 06:00:00
+  condition:
+  - condition: state
+    entity_id: input_boolean.irrigation_sprinklers_enabled
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  - condition: template
+    value_template: "{{ not states('weather.home') in ['rainy', 'pouring', 'snowy']
+      or\n   is_state('input_boolean.irrigation_rain_skip', 'off') }}\n"
+  action:
+  - service: script.run_irrigation_zone
+    data:
+      zone_entity: switch.sprinklers_valve
+      duration_minutes: 15
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.irrigation_sprinklers_last_run
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+- id: irrigation_trees_schedule
+  alias: 'Irrigation: Trees Morning'
+  description: Daily tree drip run at 6:30 AM — offset 30 min to start after sprinklers
+    finish
+  trigger:
+  - platform: time
+    at: 06:30:00
+  condition:
+  - condition: state
+    entity_id: input_boolean.irrigation_trees_enabled
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  - condition: template
+    value_template: "{{ not states('weather.home') in ['rainy', 'pouring', 'snowy']
+      or\n   is_state('input_boolean.irrigation_rain_skip', 'off') }}\n"
+  action:
+  - service: script.run_irrigation_zone
+    data:
+      zone_entity: switch.trees_valve
+      duration_minutes: 45
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.irrigation_trees_last_run
+    data:
+      datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+- id: irrigation_burst_alert
+  alias: 'Irrigation: High Flow / Burst Alert'
+  description: Close all valves and alert if any zone reports abnormally high flow
+    for 2 min
+  mode: single
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.trees_valve_flow
+    above: 40
+    for: 00:02:00
+  - platform: numeric_state
+    entity_id: sensor.sprinklers_valve_flow
+    above: 40
+    for: 00:02:00
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id:
+      - switch.trees_valve
+      - switch.sprinklers_valve
+      - switch.utility_valve
+  - service: notify.all_phones
+    data:
+      title: ⚠️ Irrigation Leak?
+      message: 'High water flow (>40 L/min) on {{ trigger.entity_id | replace(''sensor.'','''')
+        | replace(''_flow'','''') | replace(''_'','' '') | title }}. All valves closed
+        automatically.
+
+        '
+- id: irrigation_valve_safety_shutoff
+  alias: 'Irrigation: Safety Shutoff (90 min)'
+  description: Auto-close any valve open more than 90 minutes — prevents flooding
+    if a schedule fails
+  trigger:
+  - platform: state
+    entity_id: switch.trees_valve
+    to: 'on'
+    for: 01:30:00
+  - platform: state
+    entity_id: switch.sprinklers_valve
+    to: 'on'
+    for: 01:30:00
+  - platform: state
+    entity_id: switch.utility_valve
+    to: 'on'
+    for: 01:30:00
+  action:
+  - service: switch.turn_off
+    target:
+      entity_id: '{{ trigger.entity_id }}'
+  - service: notify.all_phones
+    data:
+      title: "\U0001F4A7 Irrigation Auto-Off"
+      message: '{{ trigger.entity_id | replace(''switch.'','''') | replace(''_'',''
+        '') | title }} was left on for 90 min and was automatically closed.
+
+        '
+- id: cam_unknown_front_yard
+  alias: 'Camera: Unknown Person — Front Yard Alert'
+  description: Alert when an unrecognized person is detected in front_zone
+  triggers:
+  - topic: frigate/events
+    trigger: mqtt
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      == 'end'\n   and trigger.payload_json.after.camera == 'front'\n   and trigger.payload_json.after.label
+      == 'person'\n   and trigger.payload_json.after.sub_label is none\n   and 'front_zone'
+      in (trigger.payload_json.after.current_zones | default([])) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_boolean.door_recently_opened_front
+      state: 'on'
+  actions:
+  - data:
+      title: Unknown Person — Front Yard
+      message: Someone unrecognized was detected in the front yard.
+      data:
+        image: https://ha.example.net/api/frigate/notifications/{{ trigger.payload_json.after.id
+          }}/snapshot.jpg
+        url: /lovelace
+    action: notify.all_phones
+  - delay: 00:05:00
+  mode: restart
+- id: cam_unknown_backyard
+  alias: 'Camera: Unknown Person — Backyard Alert'
+  description: Alert and trigger backyard floodlight when an unrecognized person is
+    detected in backyard_zone
+  triggers:
+  - topic: frigate/events
+    trigger: mqtt
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      == 'end'\n   and trigger.payload_json.after.camera == 'backyard'\n   and trigger.payload_json.after.label
+      == 'person'\n   and trigger.payload_json.after.sub_label is none\n   and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_boolean.door_recently_opened_back
+      state: 'on'
+  actions:
+  - data:
+      title: Unknown Person — Backyard
+      message: Someone unrecognized was detected in the backyard.
+      data:
+        image: https://ha.example.net/api/frigate/notifications/{{ trigger.payload_json.after.id
+          }}/snapshot.jpg
+        url: /lovelace
+    action: notify.all_phones
+  - if:
+    - condition: sun
+      after: sunset
+      before: sunrise
+    then:
+    - target:
+        entity_id: light.backyard_floodlight
+      action: light.turn_on
+  - delay: 00:05:00
+  - target:
+      entity_id: light.backyard_floodlight
+    action: light.turn_off
+  mode: restart
+- id: cam_riley_backyard
+  alias: 'Camera: Riley Backyard Mode'
+  description: Set Riley in Backyard flag on detection; auto-clears 10 min after last
+    sighting (mode:restart resets timer)
+  mode: restart
+  trigger:
+  - platform: mqtt
+    topic: frigate/events
+  condition:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      in ['update', 'end']\n   and trigger.payload_json.after.camera == 'backyard'\n
+      \  and trigger.payload_json.after.label == 'person'\n   and trigger.payload_json.after.sub_label
+      == 'Riley'\n   and 'backyard_zone' in (trigger.payload_json.after.current_zones
+      | default([])) }}\n"
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id:
+      - input_boolean.riley_in_backyard
+      - input_boolean.backyard_mode_active
+  - delay: 00:10:00
+  - service: input_boolean.turn_off
+    target:
+      entity_id:
+      - input_boolean.riley_in_backyard
+      - input_boolean.backyard_mode_active
+- id: cam_unknown_visitor_count
+  alias: 'Camera: Unknown Visitor Counter'
+  description: Increment weekly unknown visitor counter when an unrecognized person
+    ends an event in any monitored zone
+  triggers:
+  - topic: frigate/events
+    trigger: mqtt
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      == 'end'\n   and trigger.payload_json.after.label == 'person'\n   and trigger.payload_json.after.sub_label
+      is none\n   and (\n     (trigger.payload_json.after.camera == 'front'\n      and
+      'front_zone' in (trigger.payload_json.after.current_zones | default([])))\n
+      \    or\n     (trigger.payload_json.after.camera == 'backyard'\n      and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])))\n   ) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_boolean.door_recently_opened_front
+      state: 'on'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_boolean.door_recently_opened_back
+      state: 'on'
+  actions:
+  - target:
+      entity_id: counter.unknown_visitors_week
+    action: counter.increment
+  mode: queued
+  max: 5
+- id: cam_unknown_threshold_alert
+  alias: 'Camera: Unknown Visitor Threshold Alert'
+  description: Persistent notification when weekly unknown visitor count reaches threshold
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: counter.unknown_visitors_week
+  condition:
+  - condition: template
+    value_template: "{{ states('counter.unknown_visitors_week') | int(0) >=\n   states('input_number.unknown_visitor_threshold')
+      | int(5) }}\n"
+  action:
+  - service: persistent_notification.create
+    data:
+      title: Unknown Visitor Alert
+      message: '{{ states(''counter.unknown_visitors_week'') }} unknown visitors detected
+        this week (threshold: {{ states(''input_number.unknown_visitor_threshold'')
+        | int(5) }}).
+
+        '
+      notification_id: unknown_visitor_threshold
+- id: cam_weekly_counter_reset
+  alias: 'Camera: Weekly Visitor Counter Reset'
+  description: Reset unknown visitor counter at midnight every Sunday
+  mode: single
+  trigger:
+  - platform: time
+    at: 00:00:00
+  condition:
+  - condition: time
+    weekday:
+    - sun
+  action:
+  - service: counter.reset
+    target:
+      entity_id: counter.unknown_visitors_week
+  - service: persistent_notification.dismiss
+    data:
+      notification_id: unknown_visitor_threshold
+- id: cam_backyard_human_lights
+  alias: 'Camera: Backyard Human Detected — Lights On'
+  description: Turn on Zigbee string lights and Govee outdoor lights when any person
+    is in backyard_zone; auto-off 10 min after last detection (restart resets timer)
+  mode: restart
+  trigger:
+  - platform: mqtt
+    topic: frigate/events
+  condition:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      in ['update', 'end']\n   and trigger.payload_json.after.camera == 'backyard'\n
+      \  and trigger.payload_json.after.label == 'person'\n   and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  action:
+  - service: switch.turn_on
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+  - delay: 00:10:00
+  - service: switch.turn_off
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+- id: backyard_string_lights_on_at_dusk
+  alias: 'Backyard: String Lights On At Dusk'
+  description: Turn on backyard string lights at sunset+10min when not away
+  triggers:
+  - platform: sun
+    event: sunset
+    offset: 00:10:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+  mode: single
+- id: backyard_string_lights_off_at_sleep
+  alias: 'Backyard: String Lights Off At Sleep'
+  description: Turn off backyard string lights when sleep mode activates
+  triggers:
+  - platform: state
+    entity_id: input_boolean.sleep_mode_active
+    to: 'on'
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+  mode: single
+- id: backyard_string_lights_off_when_away
+  alias: 'Backyard: String Lights Off When Away'
+  description: Turn off backyard string lights when away mode activates
+  triggers:
+  - platform: state
+    entity_id: input_boolean.away_mode_active
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: switch.outdoor_gang_switch_l1
+    state: 'on'
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+  mode: single
+- id: backyard_string_lights_off_interior_dark
+  alias: 'Backyard: String Lights Off — Interior Dark'
+  description: Turn off string lights when living room goes dark after 10pm
+  triggers:
+  - platform: state
+    entity_id: light.living_room
+    to: 'off'
+  conditions:
+  - condition: time
+    after: '22:00:00'
+  - condition: state
+    entity_id: switch.outdoor_gang_switch_l1
+    state: 'on'
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.outdoor_gang_switch_l1
+  mode: single
+- id: backyard_shed_lights_on_at_dusk
+  alias: 'Backyard: Shed Lights On At Dusk'
+  description: Turn on shed lights at sunset+10min when not away
+  triggers:
+  - platform: sun
+    event: sunset
+    offset: 00:10:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.outdoor_gang_switch_l4
+  mode: single
+- id: backyard_shed_lights_off
+  alias: 'Backyard: Shed Lights Off'
+  description: Turn off shed lights at sleep mode, away mode, or 10pm
+  triggers:
+  - platform: state
+    entity_id: input_boolean.sleep_mode_active
+    to: 'on'
+  - platform: state
+    entity_id: input_boolean.away_mode_active
+    to: 'on'
+  - platform: time
+    at: '22:00:00'
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.outdoor_gang_switch_l4
+  mode: single
+- id: lr_tv_on_close_blinds
+  alias: 'LR: TV On → Close Blinds'
+  description: Close both blinds when Roku starts playing during daytime when home.
+    Skips the Living Room / Kitchen blind if that room is in Casual mode; lowers to
+    50% instead of fully closing if in Chill mode.
+  triggers:
+  - entity_id: media_player.roku_ultra
+    to: playing
+    trigger: state
+  conditions:
+  - condition: state
+    entity_id: sun.sun
+    state: above_horizon
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.living_room_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.living_room_blinds
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.kitchen_blinds
+  mode: single
+- id: lr_tv_off_open_blinds
+  alias: 'LR: TV Off → Open Blinds'
+  description: Open both blinds when Roku goes standby/off during daytime, when home
+    and Samsung TV is not playing
+  triggers:
+  - platform: state
+    entity_id: media_player.roku_ultra
+    to:
+    - standby
+    - idle
+    - 'off'
+  conditions:
+  - condition: state
+    entity_id: sun.sun
+    state: above_horizon
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.living_room_tv
+      state:
+      - playing
+      - paused
+  actions:
+  - action: cover.open_cover
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+  mode: single
+- id: blinds_close_all_when_away
+  alias: 'Blinds: Close All When Away'
+  description: Close both blinds when away mode activates. Skips the Living Room /
+    Kitchen blind if that room is in Casual mode; lowers to 50% instead of fully closing
+    if in Chill mode.
+  triggers:
+  - entity_id: input_boolean.away_mode_active
+    to: 'on'
+    trigger: state
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.living_room_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.living_room_blinds
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.kitchen_blinds
+  mode: single
+- id: blinds_open_all_when_arriving_home
+  alias: 'Blinds: Open All When Arriving Home'
+  description: Open both blinds when arriving home during daytime
+  triggers:
+  - platform: state
+    entity_id: input_boolean.away_mode_active
+    to: 'off'
+  conditions:
+  - condition: state
+    entity_id: sun.sun
+    state: above_horizon
+  actions:
+  - action: cover.open_cover
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+  mode: single
+- id: blinds_open_at_sunrise
+  alias: 'Blinds: Open At Sunrise'
+  description: Open both blinds at sunrise when home and not in sleep mode
+  triggers:
+  - platform: sun
+    event: sunrise
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.sleep_mode_active
+    state: 'off'
+  actions:
+  - action: cover.open_cover
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+  mode: single
+- id: blinds_close_at_sunset
+  alias: 'Blinds: Close At Sunset'
+  description: Close both blinds at sunset when home. Skips the Living Room / Kitchen
+    blind if that room is in Casual mode; lowers to 50% instead of fully closing if
+    in Chill mode.
+  triggers:
+  - event: sunset
+    trigger: sun
+  conditions:
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.living_room_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.living_room_blinds
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.kitchen_blinds
+  mode: single
+- id: blinds_close_at_sleep_mode
+  alias: 'Blinds: Close At Sleep Mode'
+  description: Close both blinds when sleep mode activates. Skips the Living Room
+    / Kitchen blind if that room is in Casual mode; lowers to 50% instead of fully
+    closing if in Chill mode.
+  triggers:
+  - entity_id: input_boolean.sleep_mode_active
+    to: 'on'
+    trigger: state
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_living_room
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.living_room_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.living_room_blinds
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.kitchen_blinds
+  mode: single
+- id: kitchen_blinds_close_when_hot_and_sunny
+  alias: 'Kitchen Blinds: Close When Hot And Sunny'
+  description: Close kitchen blinds when sunny/partly cloudy above 78F in spring/summer/fall.
+    Skips if Kitchen is in Casual mode; lowers to 50% instead of fully closing if
+    in Chill mode.
+  triggers:
+  - entity_id: weather.home
+    to:
+    - sunny
+    - partlycloudy
+    trigger: state
+  conditions:
+  - condition: numeric_state
+    entity_id: weather.home
+    attribute: temperature
+    above: 78
+  - condition: template
+    value_template: '{{ now().month not in [11, 12, 1, 2] }}'
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Casual
+      sequence: []
+    - conditions:
+      - condition: state
+        entity_id: input_select.lighting_mode_kitchen
+        state: Chill
+      sequence:
+      - action: cover.set_cover_position
+        target:
+          entity_id: cover.kitchen_blinds
+        data:
+          position: 50
+    default:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.kitchen_blinds
+  mode: single
+- id: kitchen_blinds_reopen_when_conditions_improve
+  alias: 'Kitchen Blinds: Reopen When Conditions Improve'
+  description: Reopen kitchen blinds when weather is no longer hot and sunny
+  triggers:
+  - platform: state
+    entity_id: weather.home
+  - platform: numeric_state
+    entity_id: weather.home
+    attribute: temperature
+    below: 76
+  conditions:
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: weather.home
+      state:
+      - sunny
+      - partlycloudy
+  - condition: state
+    entity_id: cover.kitchen_blinds
+    state: closed
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  actions:
+  - action: cover.open_cover
+    target:
+      entity_id: cover.kitchen_blinds
+  mode: single
+- id: system_ha_restarted_notify
+  alias: 'System: HA Restarted Notify'
+  description: Notify Riley when Home Assistant comes back online after a restart
+  triggers:
+  - platform: homeassistant
+    event: start
+  actions:
+  - action: notify.mobile_app_pixel_8
+    data:
+      title: Home Assistant Started
+      message: HA came back online at {{ now().strftime('%I:%M %p') }}
+      data:
+        ttl: 0
+        priority: normal
+  mode: single
+- id: system_mac_mini_back_online_notify
+  alias: 'System: Mac Mini Back Online Notify'
+  description: Notify when Mac Mini (Frigate host) comes back online
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.192_168_68_142
+    to: 'on'
+    from: 'off'
+  actions:
+  - action: notify.mobile_app_pixel_8
+    data:
+      title: Mac Mini Online
+      message: Mac Mini is back online — Frigate restored
+      data:
+        ttl: 0
+        priority: normal
+  mode: single
+- id: system_mac_mini_offline_notify
+  alias: 'System: Mac Mini Offline Notify'
+  description: Notify when Mac Mini (Frigate host) goes offline for 2+ minutes
+  triggers:
+  - platform: state
+    entity_id: binary_sensor.192_168_68_142
+    to: 'off'
+    for: 00:02:00
+  actions:
+  - action: notify.mobile_app_pixel_8
+    data:
+      title: Mac Mini Offline
+      message: Mac Mini has been offline 2+ min — Frigate may be down
+      data:
+        ttl: 0
+        priority: high
+  mode: single
+- id: '1783438136966'
+  alias: 'Floodlight: Night Baseline On'
+  description: Dim warm-white baseline at sunset so the yard has passive illumination;
+    escalation automations brighten on top of this. Porch light gets the same baseline
+    only if it wasn't already on (won't override a manual setting).
+  triggers:
+  - trigger: sun
+    event: sunset
+  conditions:
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id: light.front_yard_floodlight_floodlight
+    data:
+      brightness_pct: 15
+      color_temp_kelvin: 4000
+  - if:
+    - condition: state
+      entity_id: light.porch
+      state: 'off'
+    then:
+    - action: light.turn_on
+      target:
+        entity_id: light.porch
+      data:
+        brightness_pct: 15
+  mode: single
+- id: '1783438143342'
+  alias: 'Floodlight: Night Baseline Off'
+  description: Turn off the floodlight at sunrise — daytime doesn't need the dim baseline.
+    Also turns off the porch light.
+  triggers:
+  - trigger: sun
+    event: sunrise
+  conditions:
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.front_yard_floodlight_floodlight
+  - action: light.turn_off
+    target:
+      entity_id: light.porch
+  mode: single
+- id: '1783438153394'
+  alias: 'Floodlight+Porch: Welcome Known Person Light'
+  description: Warm, moderate-brightness welcome light when Riley or Casey is recognized
+    in the yard/driveway. Restarts its own timer on repeated sightings; restores to
+    night baseline (or off) after 5 min of no further detection.
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.payload_json is not none and trigger.payload_json.type
+      in [''update'', ''end''] and trigger.payload_json.after.camera == ''front_floodlight''
+      and trigger.payload_json.after.label == ''person'' and trigger.payload_json.after.sub_label
+      in [''Riley'', ''Casey''] and (''yard_zone'' in (trigger.payload_json.after.current_zones
+      | default([])) or ''driveway_zone'' in (trigger.payload_json.after.current_zones
+      | default([]))) }}'
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.front_yard_floodlight_floodlight
+      - light.porch
+    data:
+      brightness_pct: 60
+      color_temp_kelvin: 3000
+  - delay: 00:05:00
+  - action: script.floodlight_restore_baseline
+  mode: restart
+- id: '1783438163614'
+  alias: 'Floodlight+Porch: Unknown Person Light'
+  description: Bright, cool-white light (floodlight + porch) when an unrecognized
+    person is in the yard/driveway. Restarts on repeated sightings; restores to night
+    baseline (or off) after 5 min of no further detection.
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.payload_json is not none and trigger.payload_json.type
+      in [''update'', ''end''] and trigger.payload_json.after.camera == ''front_floodlight''
+      and trigger.payload_json.after.label == ''person'' and trigger.payload_json.after.sub_label
+      is none and (''yard_zone'' in (trigger.payload_json.after.current_zones | default([]))
+      or ''driveway_zone'' in (trigger.payload_json.after.current_zones | default([])))
+      }}'
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.front_yard_floodlight_floodlight
+      - light.porch
+    data:
+      brightness_pct: 100
+      color_temp_kelvin: 6000
+  - delay: 00:05:00
+  - action: script.floodlight_restore_baseline
+  mode: restart
+- id: '1783438172007'
+  alias: 'Floodlight: Unknown Person Alert'
+  description: Phone notification with snapshot when an unrecognized person's tracked
+    event ends in the yard/driveway.
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.payload_json is not none and trigger.payload_json.type
+      == ''end'' and trigger.payload_json.after.camera == ''front_floodlight'' and
+      trigger.payload_json.after.label == ''person'' and trigger.payload_json.after.sub_label
+      is none and (''yard_zone'' in (trigger.payload_json.after.current_zones | default([]))
+      or ''driveway_zone'' in (trigger.payload_json.after.current_zones | default([])))
+      }}'
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: input_boolean.door_recently_opened_front
+      state: 'on'
+  actions:
+  - action: notify.all_phones
+    data:
+      title: Unknown Person — Front Yard Floodlight
+      message: Someone unrecognized was detected in the front yard.
+      data:
+        image: https://ha.example.net/api/frigate/notifications/{{ trigger.payload_json.after.id
+          }}/snapshot.jpg
+        url: /lovelace
+  - delay: 00:05:00
+  mode: single
+- id: '1783438180673'
+  alias: 'Floodlight: Animal Detected Notify'
+  description: Low-priority notification when the floodlight's own onboard AI detects
+    an animal (Frigate isn't tracking animals on this camera). No light/siren action.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.front_yard_floodlight_animal
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  actions:
+  - action: notify.all_phones
+    data:
+      title: Animal — Front Yard
+      message: The floodlight camera spotted an animal in the front yard.
+      data:
+        image: /api/camera_proxy/camera.front_yard_floodlight_fluent
+        priority: low
+  - delay: 00:10:00
+  mode: single
+- id: '1783438190130'
+  alias: 'Floodlight: Unexpected Vehicle Alert'
+  description: Notification when a car ends its tracked event in driveway_zone at
+    night while away — skipped when someone's home since an unexpected driveway car
+    matters far less then.
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.payload_json is not none and trigger.payload_json.type
+      == ''end'' and trigger.payload_json.after.camera == ''front_floodlight'' and
+      trigger.payload_json.after.label == ''car'' and ''driveway_zone'' in (trigger.payload_json.after.current_zones
+      | default([])) }}'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  actions:
+  - action: notify.all_phones
+    data:
+      title: Vehicle in Driveway — Away Mode
+      message: A car was detected in the driveway while away mode is active.
+      data:
+        image: https://ha.example.net/api/frigate/notifications/{{ trigger.payload_json.after.id
+          }}/snapshot.jpg
+        url: /lovelace
+        priority: high
+  - delay: 00:05:00
+  mode: single
+- id: '1783438199404'
+  alias: 'Floodlight: Loitering Siren Escalation'
+  description: Opt-in escalation (off by default via input_boolean.floodlight_siren_escalation_enabled).
+    Fires a brief siren burst if the floodlight's own person sensor stays on continuously
+    for 45s at night. Not identity-aware — will also fire for Riley/Casey lingering,
+    since that requires the not-yet-built behavior-tracker service (roadmap Phase
+    1). Intentionally simple stopgap.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.front_yard_floodlight_person
+    to: 'on'
+    for: 00:00:45
+  conditions:
+  - condition: sun
+    after: sunset
+    before: sunrise
+  - condition: state
+    entity_id: input_boolean.floodlight_siren_escalation_enabled
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  actions:
+  - action: siren.turn_on
+    target:
+      entity_id: siren.front_yard_floodlight_siren
+  - delay: 00:00:05
+  - action: siren.turn_off
+    target:
+      entity_id: siren.front_yard_floodlight_siren
+  - action: notify.all_phones
+    data:
+      title: Prolonged Presence — Front Yard
+      message: Someone has been in the front yard for 45+ seconds at night. Siren
+        escalation triggered.
+      data:
+        priority: high
+  - delay: 00:15:00
+  mode: single
+- id: '1783514784360'
+  alias: 'Camera: Backyard Floodlight On Motion'
+  description: Turn on the backyard flood light (switch.outdoor_gang_switch_l3, a
+    dusk-to-dawn fixture whose own photocell decides actual illumination) and the
+    Govee outdoor string lights (light.h702b) only when a person is detected in backyard_zone
+    at night; auto-off 10 min after last detection. Previously left on 24/7, lighting
+    up every night regardless of activity.
+  triggers:
+  - topic: frigate/events
+    trigger: mqtt
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      in ['update', 'end']\n   and trigger.payload_json.after.camera == 'backyard'\n
+      \  and trigger.payload_json.after.label == 'person'\n   and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  actions:
+  - target:
+      entity_id: switch.outdoor_gang_switch_l3
+    action: switch.turn_on
+  - target:
+      entity_id: light.h702b
+    action: light.turn_on
+  - delay: 00:10:00
+  - target:
+      entity_id: switch.outdoor_gang_switch_l3
+    action: switch.turn_off
+  - target:
+      entity_id: light.h702b
+    action: light.turn_off
+  mode: restart
+- id: '1784747771602'
+  alias: 'Door: Front Door Opened — Arrival Grace Period'
+  description: Flags a 90s window after the front door opens; camera automations use
+    this to treat a person-detection during the window as an explained resident arrival/departure
+    rather than an unknown-person event.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.front_door_contact
+    to: 'on'
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.door_recently_opened_front
+  - delay: 00:01:30
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.door_recently_opened_front
+  mode: restart
+- id: '1784747773587'
+  alias: 'Door: Back Door Opened — Arrival Grace Period'
+  description: Flags a 5-minute window after the back door opens; camera automations
+    use this to treat a person-detection during the window as an explained resident
+    arrival/departure rather than an unknown-person event.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.back_door_contact
+    to: 'on'
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.door_recently_opened_back
+  - delay: 00:05:00
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.door_recently_opened_back
+  mode: restart
+- id: camera_carport_floodlight_on_motion
+  alias: 'Camera: Carport Floodlight On Motion'
+  description: Turn on the carport flood light (switch.outdoor_plug, a plug-in spotlight)
+    when a person is detected in backyard_zone at night; auto-off 10 min after last
+    detection. Mirrors camera_backyard_floodlight_on_motion (L3).
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      in ['update', 'end']\n   and trigger.payload_json.after.camera == 'backyard'\n
+      \  and trigger.payload_json.after.label == 'person'\n   and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  actions:
+  - target:
+      entity_id: switch.outdoor_plug
+    action: switch.turn_on
+  - delay: 00:10:00
+  - target:
+      entity_id: switch.outdoor_plug
+    action: switch.turn_off
+  mode: restart
+- id: '1788734819131'
+  alias: 'Camera: Rear Floodlight On Motion'
+  description: Turn on the Rear Flood Light (switch.rear_flood_light, a Kasa HS103
+    plug-in floodlight covering both front and back per user description) as early
+    as possible when a person OR car is detected in backyard_zone (backyard camera,
+    person only) or yard_zone/driveway_zone (front_floodlight camera, person or car)
+    at night; auto-off 10 min after last detection. Car detection added so it reacts
+    the moment a vehicle pulls into the driveway instead of waiting for the driver
+    to get out and be classified as a person. Reacts on Frigate's 'new' event (first
+    sighting) as well as 'update'/'end', not just the latter two, to shave off the
+    delay before the first periodic update. Mirrors camera_backyard_floodlight_on_motion
+    / camera_carport_floodlight_on_motion.
+  triggers:
+  - trigger: mqtt
+    topic: frigate/events
+  conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json is not none\n   and trigger.payload_json.type
+      in ['new', 'update', 'end']\n   and (\n     (trigger.payload_json.after.camera
+      == 'backyard' and trigger.payload_json.after.label == 'person' and 'backyard_zone'
+      in (trigger.payload_json.after.current_zones | default([])))\n     or (trigger.payload_json.after.camera
+      == 'front_floodlight' and trigger.payload_json.after.label in ['person', 'car']
+      and (\n       'yard_zone' in (trigger.payload_json.after.current_zones | default([]))\n
+      \      or 'driveway_zone' in (trigger.payload_json.after.current_zones | default([]))\n
+      \    ))\n   ) }}\n"
+  - condition: state
+    entity_id: input_boolean.camera_automations_enabled
+    state: 'on'
+  - condition: sun
+    after: sunset
+    before: sunrise
+  actions:
+  - target:
+      entity_id: switch.rear_flood_light
+    action: switch.turn_on
+  - delay: 00:10:00
+  - target:
+      entity_id: switch.rear_flood_light
+    action: switch.turn_off
+  mode: restart
+- id: '1789415872197'
+  alias: LR Button 1 - Single → Toggle Lights (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 1 single press: synced
+    toggle of Living Room + Kitchen lights together, based on Living Room''s current
+    state.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: single_button_1
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: light.living_room
+        state: 'on'
+      sequence:
+      - action: light.turn_off
+        target:
+          entity_id:
+          - light.living_room
+          - light.lamp
+          - light.kitchen
+          - light.lightstrip
+    default:
+    - action: light.turn_on
+      target:
+        entity_id:
+        - light.living_room
+        - light.lamp
+        - light.kitchen
+        - light.lightstrip
+- id: '1789415910455'
+  alias: LR Button 1 - Double → Cycle Lighting Mode (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 1 double press: cycles
+    Living Room + Kitchen lighting mode together through Normal→Working→Casual→Chill→Movie→Party.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: double_button_1
+  actions:
+  - action: input_select.select_option
+    target:
+      entity_id:
+      - input_select.lighting_mode_living_room
+      - input_select.lighting_mode_kitchen
+    data:
+      option: '{% set modes = [''Normal'',''Working'',''Casual'',''Chill'',''Movie'',''Party'']
+        %}
+
+        {% set cur = states(''input_select.lighting_mode_living_room'') %}
+
+        {% set idx = modes.index(cur) if cur in modes else 0 %}
+
+        {{ modes[(idx + 1) % (modes | length)] }}
+
+        '
+- id: '1789415912250'
+  alias: LR Button 1 - Hold → Good Night
+  description: '4-way Sonoff button in Living Room, button 1 hold: runs the existing
+    Good Night script (all lights off, sleep mode on).'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: hold_button_1
+  actions:
+  - action: script.good_night_all
+- id: '1789415915385'
+  alias: LR Button 2 - Single → Mode Casual (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 2 single press: jumps Living
+    Room + Kitchen straight to Casual mode, turning lights on explicitly so it works
+    even if they were off.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: single_button_2
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.kitchen
+      - light.lightstrip
+    data:
+      brightness: '{{ states(''input_number.mode_casual_brightness'') | int }}'
+      color_temp_kelvin: '{{ states(''input_number.mode_casual_color_temp'') | int
+        }}'
+      transition: 3
+  - action: input_select.select_option
+    target:
+      entity_id:
+      - input_select.lighting_mode_living_room
+      - input_select.lighting_mode_kitchen
+    data:
+      option: Casual
+- id: '1789415918813'
+  alias: LR Button 2 - Double → Mode Chill (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 2 double press: jumps Living
+    Room + Kitchen to Chill mode and lowers both blinds to 50%, turning lights on
+    explicitly so it works even if they were off.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: double_button_2
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.kitchen
+      - light.lightstrip
+    data:
+      brightness: '{{ states(''input_number.mode_chill_brightness'') | int }}'
+      color_temp_kelvin: '{{ states(''input_number.mode_chill_color_temp'') | int
+        }}'
+      transition: 5
+  - action: input_select.select_option
+    target:
+      entity_id:
+      - input_select.lighting_mode_living_room
+      - input_select.lighting_mode_kitchen
+    data:
+      option: Chill
+  - action: cover.set_cover_position
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+    data:
+      position: 50
+- id: '1789415921811'
+  alias: LR Button 2 - Hold → Mode Movie (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 2 hold: jumps Living Room
+    + Kitchen straight to Movie mode, turning lights on explicitly so it works even
+    if they were off.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: hold_button_2
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.kitchen
+      - light.lightstrip
+    data:
+      brightness: '{{ states(''input_number.mode_movie_brightness'') | int }}'
+      color_temp_kelvin: '{{ states(''input_number.mode_movie_color_temp'') | int
+        }}'
+      transition: 5
+  - action: input_select.select_option
+    target:
+      entity_id:
+      - input_select.lighting_mode_living_room
+      - input_select.lighting_mode_kitchen
+    data:
+      option: Movie
+- id: '1789415923812'
+  alias: LR Button 3 - Single → Blinds Open (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 3 single press: opens both
+    Living Room and Kitchen blinds.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: single_button_3
+  actions:
+  - action: cover.open_cover
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+- id: '1789415925762'
+  alias: LR Button 3 - Double → Blinds Close (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 3 double press: closes
+    both Living Room and Kitchen blinds.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: double_button_3
+  actions:
+  - action: cover.close_cover
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+- id: '1789415927961'
+  alias: LR Button 3 - Hold → Blinds Halfway (LR+Kitchen)
+  description: '4-way Sonoff button in Living Room, button 3 hold: sets both Living
+    Room and Kitchen blinds to 50%, a manual override independent of lighting mode.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: hold_button_3
+  actions:
+  - action: cover.set_cover_position
+    target:
+      entity_id:
+      - cover.living_room_blinds
+      - cover.kitchen_blinds
+    data:
+      position: 50
+- id: '1789416473923'
+  alias: LR Button 4 - Single → Outdoor Lights On
+  description: '4-way Sonoff button in Living Room, button 4 single press: turns on
+    every outdoor light/floodlight fixture.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: single_button_4
+  actions:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.porch
+      - light.front_yard_floodlight
+      - light.h702b
+  - action: switch.turn_on
+    target:
+      entity_id:
+      - switch.outdoor_gang_switch_l1
+      - switch.outdoor_gang_switch_l3
+      - switch.outdoor_gang_switch_l4
+      - switch.outdoor_plug
+      - switch.rear_flood_light
+      - switch.front_driveway_floodlight
+- id: '1789416476576'
+  alias: LR Button 4 - Double → Outdoor Lights Off
+  description: '4-way Sonoff button in Living Room, button 4 double press: turns off
+    every outdoor light/floodlight fixture.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: double_button_4
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id:
+      - light.porch
+      - light.front_yard_floodlight
+      - light.h702b
+  - action: switch.turn_off
+    target:
+      entity_id:
+      - switch.outdoor_gang_switch_l1
+      - switch.outdoor_gang_switch_l3
+      - switch.outdoor_gang_switch_l4
+      - switch.outdoor_plug
+      - switch.rear_flood_light
+      - switch.front_driveway_floodlight
+- id: '1789416478232'
+  alias: LR Button 4 - Hold → Find My Phone (Riley)
+  description: '4-way Sonoff button in Living Room, button 4 hold: runs the existing
+    Find Riley''s Phone script.'
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/4 way button/action
+    payload: hold_button_4
+  actions:
+  - action: script.find_riley_phone
+- id: '1789416480415'
+  alias: Home - Room Automations Daily Safety Reset
+  description: 'Safety net: forces all 3 room-level automation toggles back on every
+    morning at 7am, so a room accidentally left disabled never stays off more than
+    one night.'
+  triggers:
+  - trigger: time
+    at: 07:00:00
+  actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id:
+      - input_boolean.automations_living_room
+      - input_boolean.automations_bedroom
+      - input_boolean.automations_kitchen
+- id: '1791304093392'
+  alias: System - UPS Power Alert
+  description: Notify both phones when the UPS switches to battery (power outage,
+    15s debounce), when power is restored (on->off only; unavailable->off from a Mac/monitor
+    restart is ignored), and when battery drops below 30% while on battery. Fed by
+    HomeAssistant/ups/ups_monitor.py on the Mac Mini via MQTT.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.ups_on_battery
+    from: 'off'
+    to: 'on'
+    for:
+      seconds: 15
+    id: outage
+  - trigger: state
+    entity_id: binary_sensor.ups_on_battery
+    from: 'on'
+    to: 'off'
+    id: restored
+  - trigger: numeric_state
+    entity_id: sensor.ups_battery
+    below: 30
+    id: low
+  actions:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: outage
+      sequence:
+      - action: notify.all_phones
+        data:
+          title: ⚡ Power Out
+          message: House is on UPS battery ({{ states('sensor.ups_battery') }}%).
+            Mac, HA, and internet are running on backup.
+          data:
+            priority: high
+            ttl: 0
+            tag: ups_power
+    - conditions:
+      - condition: trigger
+        id: restored
+      sequence:
+      - action: notify.all_phones
+        data:
+          title: ✅ Power Restored
+          message: Back on wall power after {{ ((now() - trigger.from_state.last_changed).total_seconds()
+            / 60) | round(1) }} min. UPS battery at {{ states('sensor.ups_battery')
+            }}%.
+          data:
+            tag: ups_power
+    - conditions:
+      - condition: trigger
+        id: low
+      - condition: state
+        entity_id: binary_sensor.ups_on_battery
+        state: 'on'
+      sequence:
+      - action: notify.all_phones
+        data:
+          title: "\U0001F50B UPS Battery Low"
+          message: UPS battery at {{ states('sensor.ups_battery') }}% and still no
+            wall power. Mac will shut down soon; HA and network will follow.
+          data:
+            priority: high
+            ttl: 0
+            tag: ups_power
+  mode: queued
+- id: '1791475881141'
+  alias: Bed - Front Yard Motion → TV Camera PiP
+  description: 'Show the front yard camera as a QuickBars picture-in-picture overlay
+    on the bedroom Google TV when front yard motion is detected. QuickBars app listens
+    for the quickbars.open event over its persistent HA WebSocket (requires ''Persistent
+    background connection'' enabled in the app). PiP is a toggle — re-sending the
+    same camera hides it — so mode: single plus a delay longer than auto_hide prevents
+    flicker.'
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.front_yard_motion
+    to: 'on'
+  conditions:
+  - condition: state
+    entity_id: input_boolean.automations_bedroom
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.automation_bed_tv_camera_pip
+    state: 'on'
+  - condition: state
+    entity_id: input_boolean.away_mode_active
+    state: 'off'
+  - condition: template
+    value_template: '{% set ts = state_attr(''input_datetime.snooze_bed_tv_camera_pip'',
+      ''timestamp'') %} {{ ts is none or ts < now().timestamp() }}'
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.bedroom_tv_2_2
+      state:
+      - 'off'
+      - standby
+      - unavailable
+      - unknown
+  actions:
+  - event: quickbars.open
+    event_data:
+      camera_entity: camera.front_yard_fluent
+      camera_title: Front Yard
+      show_title: true
+      position: top_right
+      size: medium
+      auto_hide: 30
+      show_toast: false
+  - delay:
+      seconds: 35
+  mode: single
+  max_exceeded: silent

@@ -1,0 +1,60 @@
+version: 5
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://core-mosquitto:1883
+  user: <redacted>
+  password: <redacted>
+serial:
+  port: /dev/serial/by-id/usb-Nabu_Casa_ZBT-2_REDACTEDSN01-if00
+  adapter: ember
+  baudrate: 460800
+advanced:
+  log_level: info
+frontend:
+  enabled: true
+  port: 8099
+homeassistant:
+  enabled: true
+permit_join: false
+devices:
+  'ieee-e32f3efda0':
+    friendly_name: vibration sensor 1
+  'ieee-ec843f7123':
+    friendly_name: vibration sensor 2
+  'ieee-ae26c94372':
+    friendly_name: vibration sensor 3
+  'ieee-763870e2c4':
+    friendly_name: hallway motion sensor
+  'ieee-90ca14d5e5':
+    friendly_name: bedroom switch
+  'ieee-c5a271ae10':
+    friendly_name: Living Room Motion Sensor
+  'ieee-d716beea52':
+    friendly_name: Kitchen Motion Sensor
+  'ieee-be902bcb36':
+    friendly_name: Bedroom Motion Sensor
+  'ieee-38e25d691d':
+    friendly_name: Indoor Tree Soil Moisture
+  'ieee-f478fb7a1f':
+    friendly_name: Green Giant Soil Sensor
+    temperature_calibration: 0
+  'ieee-1b7ed05923':
+    friendly_name: Fescue Grass Soil Moisture
+  'ieee-0d1847c670':
+    friendly_name: Outdoor Gang Switch
+  'ieee-ac3095e3c6':
+    friendly_name: Entertainment Console Plug1
+  'ieee-24c7db010a':
+    friendly_name: Kitchen Plug
+  'ieee-dd170d09ad':
+    friendly_name: Entertainment Console Plug2
+  'ieee-5ca4b957f0':
+    friendly_name: Outdoor Plug
+  'ieee-e0228ba9ed':
+    friendly_name: front_door
+  'ieee-b12b265425':
+    friendly_name: back_door
+  'ieee-95a704a541':
+    friendly_name: 4 way button
+  'ieee-498daf5a4a':
+    friendly_name: mmw motion sensor

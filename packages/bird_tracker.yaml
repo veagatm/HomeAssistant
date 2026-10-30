@@ -1,0 +1,62 @@
+# Bird Tracker — MQTT sensors + notifications
+# Deployed to /config/packages/bird_tracker.yaml
+# Depends on bird-tracker Docker service publishing to birds/* topics
+
+mqtt:
+  sensor:
+    - name: "Birds Today Total"
+      unique_id: birds_today_total
+      state_topic: "birds/today/total"
+      unit_of_measurement: "sightings"
+      icon: mdi:bird
+
+    - name: "Birds Today Unique"
+      unique_id: birds_today_unique
+      state_topic: "birds/today/unique"
+      unit_of_measurement: "species"
+      icon: mdi:bird
+
+    - name: "Birds Today List"
+      unique_id: birds_today_list
+      state_topic: "birds/today/list"
+      icon: mdi:format-list-bulleted
+
+    - name: "Last Bird Seen"
+      unique_id: birds_last_species
+      state_topic: "birds/last/species"
+      icon: mdi:feather
+
+    - name: "Last Bird Time"
+      unique_id: birds_last_time
+      state_topic: "birds/last/time"
+      device_class: timestamp
+      icon: mdi:clock-outline
+
+    - name: "Birds Lifetime Unique"
+      unique_id: birds_lifetime_unique
+      state_topic: "birds/lifetime/unique"
+      unit_of_measurement: "species"
+      icon: mdi:counter
+
+automation:
+  - id: bird_new_species_alert
+    alias: "Bird — New Species Spotted"
+    description: "Push notification when a species never seen before visits the feeder"
+    mode: queued
+    max: 5
+    trigger:
+      - platform: mqtt
+        topic: "birds/alert/new_species"
+    action:
+      - variables:
+          payload: "{{ trigger.payload_json }}"
+      - service: notify.all_phones
+        data:
+          title: "New Bird Species!"
+          message: >
+            {{ payload.species }} just visited the feeder for the first time!
+            ({{ (payload.confidence * 100) | round(0) }}% confidence)
+          data:
+            image: "{{ payload.snapshot_url }}"
+            ttl: 0
+            priority: high

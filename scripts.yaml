@@ -1,0 +1,321 @@
+snooze_automation:
+  alias: Snooze Automation
+  description: Pause any automation by setting its snooze datetime forward.
+  mode: queued
+  fields:
+    snooze_id:
+      description: 'Snooze entity suffix — e.g. ''lr_motion''. Full entity: input_datetime.snooze_<id>'
+      required: true
+      selector:
+        select:
+          options:
+          - lr_motion
+          - bed_motion
+          - kit_motion
+          - hall_motion
+          - washer_alert
+          - dryer_alert
+          - internet_outage
+          - away_mode
+          - arriving_home
+          - sleep_mode
+          - wake_mode
+          - trash_reminder
+          - memory_lights_lr
+          - memory_lights_bed
+          - memory_lights_kit
+    duration_minutes:
+      description: How many minutes to snooze (15, 30, 60, 120, 240)
+      required: true
+      selector:
+        select:
+          options:
+          - label: 15 minutes
+            value: '15'
+          - label: 30 minutes
+            value: '30'
+          - label: 1 hour
+            value: '60'
+          - label: 2 hours
+            value: '120'
+          - label: 4 hours
+            value: '240'
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_{{ snooze_id }}
+    data:
+      datetime: "{{ (now() + timedelta(minutes=duration_minutes | int))\n   | as_timestamp
+        | timestamp_custom('%Y-%m-%d %H:%M:%S') }}\n"
+snooze_until_morning:
+  alias: Snooze Until 7am Tomorrow
+  description: Pause an automation until 7:00 AM tomorrow morning.
+  mode: queued
+  fields:
+    snooze_id:
+      description: Snooze entity suffix
+      required: true
+      selector:
+        text:
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_{{ snooze_id }}
+    data:
+      datetime: '{{ (now().date() + timedelta(days=1)).strftime(''%Y-%m-%d'') + ''
+        07:00:00'' }}
+
+        '
+clear_snooze:
+  alias: Clear Snooze
+  description: Un-snooze an automation so it runs on next trigger.
+  mode: queued
+  fields:
+    snooze_id:
+      description: Snooze entity suffix
+      required: true
+      selector:
+        text:
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_{{ snooze_id }}
+    data:
+      datetime: '1970-01-01 00:00:00'
+find_riley_phone:
+  alias: Find Riley's Phone
+  description: Send a loud critical push to Riley's Pixel 8 + TTS announcement
+  sequence:
+  - service: notify.mobile_app_pixel_8
+    data:
+      title: "\U0001F4CD Find My Phone"
+      message: Your phone has been pinged from Home Assistant.
+      data:
+        ttl: 0
+        priority: high
+        channel: urgent
+        importance: high
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: Riley, your phone is being looked for.
+find_casey_phone:
+  alias: Find Casey's Phone
+  description: Send a loud critical push to Casey's Samsung + TTS announcement
+  sequence:
+  - service: notify.mobile_app_casey_s_galaxy
+    data:
+      title: "\U0001F4CD Find My Phone"
+      message: Your phone has been pinged from Home Assistant.
+      data:
+        ttl: 0
+        priority: high
+        channel: urgent
+        importance: high
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id: media_player.kitchen_speaker
+      message: Casey, your phone is being looked for.
+good_night_all:
+  alias: Good Night — All Lights Off + Sleep Mode
+  description: Turn off every light and activate sleep mode. Callable from dashboard
+    or voice.
+  sequence:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.sleep_mode_active
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.bed_manual_mode
+  - service: light.turn_off
+    target:
+      entity_id:
+      - light.living_room
+      - light.lamp
+      - light.bedroom
+      - light.govee_lamp_1
+      - light.kitchen
+      - light.lightstrip
+      - light.hallway
+      - light.foyer
+      - light.dining_1
+      - light.dining_2
+      - light.dining_3
+      - light.porch
+      - light.porch_2
+      - light.office
+set_trash_night:
+  alias: Set Trash Night
+  description: Mark tonight as trash night — reminder fires on next kitchen entry
+    after 7pm
+  sequence:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.trash_night
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.snooze_trash_reminder
+    data:
+      datetime: '1970-01-01 00:00:00'
+clear_all_snoozes:
+  alias: Clear All Snoozes
+  description: Un-snooze every automation at once.
+  mode: single
+  sequence:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id:
+      - input_datetime.snooze_lr_motion
+      - input_datetime.snooze_bed_motion
+      - input_datetime.snooze_kit_motion
+      - input_datetime.snooze_hall_motion
+      - input_datetime.snooze_washer_alert
+      - input_datetime.snooze_dryer_alert
+      - input_datetime.snooze_internet_outage
+      - input_datetime.snooze_away_mode
+      - input_datetime.snooze_arriving_home
+      - input_datetime.snooze_sleep_mode
+      - input_datetime.snooze_wake_mode
+      - input_datetime.snooze_trash_reminder
+      - input_datetime.snooze_memory_lights_lr
+      - input_datetime.snooze_memory_lights_bed
+      - input_datetime.snooze_memory_lights_kit
+    data:
+      datetime: '1970-01-01 00:00:00'
+run_irrigation_zone:
+  alias: Run Irrigation Zone
+  description: Turn on one irrigation valve for a set duration, closing all others
+    first.
+  mode: queued
+  max: 3
+  fields:
+    zone_entity:
+      description: Switch entity to run (e.g. switch.trees_valve)
+      required: true
+      selector:
+        select:
+          options:
+          - switch.trees_valve
+          - switch.sprinklers_valve
+          - switch.utility_valve
+    duration_minutes:
+      description: Runtime in minutes
+      required: true
+      selector:
+        select:
+          options:
+          - label: 10 minutes
+            value: '10'
+          - label: 15 minutes
+            value: '15'
+          - label: 20 minutes
+            value: '20'
+          - label: 30 minutes
+            value: '30'
+          - label: 45 minutes
+            value: '45'
+          - label: 60 minutes
+            value: '60'
+  sequence:
+  - service: switch.turn_off
+    target:
+      entity_id:
+      - switch.trees_valve
+      - switch.sprinklers_valve
+      - switch.utility_valve
+  - delay: 00:00:02
+  - service: switch.turn_on
+    target:
+      entity_id: '{{ zone_entity }}'
+  - delay:
+      minutes: '{{ duration_minutes | int }}'
+  - service: switch.turn_off
+    target:
+      entity_id: '{{ zone_entity }}'
+stop_all_irrigation:
+  alias: Stop All Irrigation
+  description: Emergency stop — close all irrigation valves immediately.
+  mode: single
+  sequence:
+  - service: switch.turn_off
+    target:
+      entity_id:
+      - switch.trees_valve
+      - switch.sprinklers_valve
+      - switch.utility_valve
+cast_kitchen_panel:
+  alias: Cast Kitchen Panel to Nest Hub
+  description: Cast the kitchen dashboard to the Nest Hub display in the kitchen.
+  mode: single
+  sequence:
+  - service: cast.show_lovelace_view
+    data:
+      entity_id: media_player.kitchen_speaker
+      dashboard_path: kitchen-panel
+      view_path: default
+cast_industry_hbo:
+  alias: Open Max on Nest Hub
+  description: Launch Max app on kitchen Nest Hub (app_id 3A2AA214 confirmed from
+    cast history)
+  mode: single
+  sequence:
+  - service: media_player.play_media
+    data:
+      entity_id: media_player.kitchen_speaker
+      media_content_type: cast
+      media_content_id: '{"app_id": "3A2AA214"}'
+announce_all_speakers:
+  alias: Announce on All Speakers
+  description: TTS message on all Google speakers simultaneously.
+  fields:
+    message:
+      description: The message to announce
+      required: true
+      selector:
+        text:
+  sequence:
+  - service: tts.speak
+    target:
+      entity_id: tts.google_en_com
+    data:
+      media_player_entity_id:
+      - media_player.kitchen_speaker
+      - media_player.living_room_speaker
+      - media_player.bedroom_speaker
+      - media_player.bathroom_speaker
+      - media_player.office_speaker
+      message: '{{ message }}'
+floodlight_restore_baseline:
+  alias: 'Floodlight: Restore Night Baseline'
+  description: Called after a welcome/alert light escalation ends — dims back to the
+    night baseline if still dark, or turns off if it's daytime now. Also restores
+    the porch light.
+  sequence:
+  - if:
+    - condition: sun
+      after: sunset
+      before: sunrise
+    then:
+    - action: light.turn_on
+      target:
+        entity_id: light.front_yard_floodlight_floodlight
+      data:
+        brightness_pct: 15
+        color_temp_kelvin: 4000
+    - action: light.turn_on
+      target:
+        entity_id: light.porch
+      data:
+        brightness_pct: 15
+    else:
+    - action: light.turn_off
+      target:
+        entity_id: light.front_yard_floodlight_floodlight
+    - action: light.turn_off
+      target:
+        entity_id: light.porch
+  mode: single

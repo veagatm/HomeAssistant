@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design 2 — Clean Light</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #f0f4f8; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Roboto', sans-serif;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  gap: 10px;
+}
+
+/* STATUS BAR */
+.status-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: white;
+  border-radius: 18px;
+  padding: 10px 20px;
+  height: 62px; flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.person-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: #f8fafc; border: 1.5px solid #e2e8f0;
+  border-radius: 22px; padding: 5px 14px 5px 6px;
+}
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  color: white; flex-shrink: 0;
+}
+.av-l { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.av-m { background: linear-gradient(135deg, #ec4899, #be185d); }
+.person-info {}
+.person-name { font-size: 12.5px; font-weight: 700; color: #1e293b; }
+.person-status { font-size: 10.5px; color: #22c55e; font-weight: 600; }
+.spacer { flex: 1; }
+.clock-block { text-align: center; }
+.clock-time { font-size: 28px; font-weight: 300; letter-spacing: -0.5px; color: #0f172a; }
+.clock-date { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.stat-chip {
+  display: flex; align-items: center; gap: 7px;
+  background: #f8fafc; border: 1.5px solid #e2e8f0;
+  border-radius: 22px; padding: 7px 14px;
+  font-size: 13px; font-weight: 600;
+}
+.power-num { color: #f59e0b; }
+.cast-btn {
+  background: #3b82f6; color: white;
+  border-radius: 22px; padding: 7px 16px;
+  font-size: 12.5px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+}
+
+/* GRID */
+.main-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; flex: 1; min-height: 0;
+}
+.col { display: flex; flex-direction: column; gap: 8px; }
+
+/* CARD */
+.card {
+  background: white; border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.card-grow { flex: 1; display: flex; flex-direction: column; }
+
+.section-heading {
+  font-size: 15px; font-weight: 800; color: #0f172a;
+  margin-bottom: 4px;
+}
+.section-sub { font-size: 11px; color: #94a3b8; font-weight: 500; margin-bottom: 14px; }
+.divider { height: 1px; background: #f1f5f9; margin: 10px 0; }
+
+/* LIGHT CONTROL */
+.light-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+.light-bulb {
+  width: 36px; height: 36px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.bulb-on { background: #fef9c3; }
+.bulb-off { background: #f1f5f9; }
+.light-label { flex: 1; }
+.light-name { font-size: 13.5px; font-weight: 600; color: #1e293b; }
+.light-val { font-size: 11px; color: #94a3b8; }
+.pill-toggle {
+  width: 40px; height: 23px; border-radius: 12px; position: relative;
+}
+.pt-on { background: #3b82f6; }
+.pt-off { background: #e2e8f0; }
+.pill-toggle::after {
+  content: ''; width: 19px; height: 19px; border-radius: 50%;
+  background: white; position: absolute; top: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.pt-on::after { left: 19px; }
+.pt-off::after { left: 2px; }
+.brightness-wrap { margin-bottom: 12px; }
+.btrack { height: 5px; background: #f1f5f9; border-radius: 3px; }
+.bfill { height: 100%; border-radius: 3px; background: linear-gradient(to right, #fbbf24, #f59e0b); }
+
+/* MINI LIGHTS */
+.mini-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; }
+.mini-tile {
+  background: #f8fafc; border-radius: 12px; padding: 9px 11px;
+  border: 1px solid #e2e8f0;
+}
+.mini-tname { font-size: 10.5px; color: #94a3b8; margin-bottom: 4px; font-weight: 500; }
+.mini-tstate { font-size: 13px; font-weight: 700; color: #1e293b; }
+.mini-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.d-yellow { background: #fbbf24; }
+.d-purple { background: #a855f7; }
+.d-gray { background: #cbd5e1; }
+
+/* MEDIA */
+.media-tile {
+  background: #f8fafc; border-radius: 12px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid #e2e8f0; margin-bottom: 8px;
+}
+.media-ico { font-size: 20px; flex-shrink: 0; }
+.media-n { font-size: 13px; font-weight: 600; color: #1e293b; }
+.media-s { font-size: 11px; color: #94a3b8; }
+
+/* INDUSTRY */
+.industry-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #7c2d12 100%);
+  border-radius: 14px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  margin-top: auto; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(109,40,217,0.35);
+  color: white;
+}
+.ind-ico { font-size: 24px; }
+.ind-lbl { font-size: 14px; font-weight: 800; }
+.ind-sub { font-size: 10.5px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+/* CAMERAS */
+.cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cam-tile {
+  border-radius: 12px; aspect-ratio: 16/9;
+  background: #0f172a; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cam-tile::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 40%, #1e3a5f55 0%, #050e1a 100%);
+}
+.cam-inner { position: relative; z-index: 1; text-align: center; }
+.cam-glyph { font-size: 22px; opacity: 0.35; }
+.cam-tag {
+  position: absolute; bottom: 5px; left: 7px; z-index: 2;
+  font-size: 9px; background: rgba(0,0,0,0.6);
+  padding: 2px 6px; border-radius: 4px; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+}
+
+/* SOIL */
+.soil-card { background: #f8fafc; border-radius: 12px; padding: 11px 13px; border: 1px solid #e2e8f0; }
+.soil-title { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 9px; }
+.soil-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.soil-row:last-child { margin-bottom: 0; }
+.sico { font-size: 13px; flex-shrink: 0; }
+.sname { font-size: 11.5px; color: #64748b; flex: 1; font-weight: 500; }
+.sbar { width: 50px; height: 4px; background: #e2e8f0; border-radius: 2px; flex-shrink: 0; }
+.sbfill { height: 100%; border-radius: 2px; }
+.sbg { background: #22c55e; } .sba { background: #f59e0b; } .sbr { background: #ef4444; }
+.spct { font-size: 11.5px; font-weight: 700; min-width: 30px; text-align: right; }
+.sg { color: #16a34a; } .sa { color: #d97706; } .sr { color: #dc2626; }
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="person-pill">
+    <div class="avatar av-l">L</div>
+    <div class="person-info">
+      <div class="person-name">Riley</div>
+      <div class="person-status">● Home</div>
+    </div>
+  </div>
+  <div class="person-pill">
+    <div class="avatar av-m">M</div>
+    <div class="person-info">
+      <div class="person-name">Casey</div>
+      <div class="person-status">● Home</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="clock-block">
+    <div class="clock-time">9:42 AM</div>
+    <div class="clock-date">Thursday, May 15, 2026</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stat-chip">⚡ <span class="power-num">1,240 W</span></div>
+  <div class="cast-btn">📡 Cast Panel</div>
+</div>
+
+<!-- GRID -->
+<div class="main-grid">
+
+  <!-- KITCHEN -->
+  <div class="col">
+    <div class="card card-grow">
+      <div class="section-heading">Kitchen</div>
+      <div class="section-sub">🟢 Motion detected · 340 lux</div>
+
+      <div class="light-row">
+        <div class="light-bulb bulb-on">💡</div>
+        <div class="light-label">
+          <div class="light-name">Kitchen</div>
+          <div class="light-val">78% · 2700 K</div>
+        </div>
+        <div class="pill-toggle pt-on"></div>
+      </div>
+      <div class="brightness-wrap">
+        <div class="btrack"><div class="bfill" style="width:78%"></div></div>
+      </div>
+
+      <div class="mini-row">
+        <div class="mini-tile">
+          <div class="mini-tname">Counter Strip</div>
+          <div class="mini-tstate"><span class="mini-dot d-yellow"></span>60%</div>
+        </div>
+        <div class="mini-tile">
+          <div class="mini-tname">Ceiling</div>
+          <div class="mini-tstate"><span class="mini-dot d-yellow"></span>85%</div>
+        </div>
+      </div>
+
+      <div class="media-tile">
+        <span class="media-ico">🔊</span>
+        <div><div class="media-n">Kitchen Speaker</div><div class="media-s">Idle</div></div>
+      </div>
+
+      <div class="industry-card">
+        <span class="ind-ico">📺</span>
+        <div>
+          <div class="ind-lbl">Industry — Max</div>
+          <div class="ind-sub">Tap to cast · Hold to stop</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVING ROOM -->
+  <div class="col">
+    <div class="card card-grow">
+      <div class="section-heading">Living Room</div>
+      <div class="section-sub">⚪ Clear · 180 lux</div>
+
+      <div class="light-row">
+        <div class="light-bulb bulb-off">💡</div>
+        <div class="light-label">
+          <div class="light-name">Living Room</div>
+          <div class="light-val">Off</div>
+        </div>
+        <div class="pill-toggle pt-off"></div>
+      </div>
+      <div class="brightness-wrap">
+        <div class="btrack"><div class="bfill" style="width:0%"></div></div>
+      </div>
+
+      <div class="mini-row">
+        <div class="mini-tile">
+          <div class="mini-tname">Lamp</div>
+          <div class="mini-tstate"><span class="mini-dot d-gray"></span>Off</div>
+        </div>
+        <div class="mini-tile">
+          <div class="mini-tname">TV Strip</div>
+          <div class="mini-tstate"><span class="mini-dot d-purple"></span>40%</div>
+        </div>
+      </div>
+
+      <div class="media-tile">
+        <span class="media-ico">📺</span>
+        <div><div class="media-n">Roku Ultra</div><div class="media-s">Idle</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMERAS + SOIL -->
+  <div class="col">
+    <div class="card">
+      <div class="section-heading" style="margin-bottom:10px;">Cameras</div>
+      <div class="cam-grid">
+        <div class="cam-tile">
+          <div class="cam-inner"><span class="cam-glyph">📷</span></div>
+          <div class="cam-tag">Driveway</div>
+        </div>
+        <div class="cam-tile">
+          <div class="cam-inner"><span class="cam-glyph">📷</span></div>
+          <div class="cam-tag">Backyard</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;">
+      <div class="section-heading" style="margin-bottom:12px;">Soil Moisture</div>
+      <div class="soil-card">
+        <div class="soil-row">
+          <span class="sico">🌿</span>
+          <span class="sname">Fescue</span>
+          <div class="sbar"><div class="sbfill sbg" style="width:76%"></div></div>
+          <span class="spct sg">38%</span>
+        </div>
+        <div class="soil-row">
+          <span class="sico">🌲</span>
+          <span class="sname">Green Giant</span>
+          <div class="sbar"><div class="sbfill sbg" style="width:84%"></div></div>
+          <span class="spct sg">42%</span>
+        </div>
+        <div class="soil-row">
+          <span class="sico">🌳</span>
+          <span class="sname">Indoor</span>
+          <div class="sbar"><div class="sbfill sbg" style="width:88%"></div></div>
+          <span class="spct sg">22%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Old dated snapshots — superseded by current files, duplicates the same
+# secrets/IPs as the live docs without adding showcase value.
+archive/
+
+# Biometric training photos (real photos of household members used for
+# Frigate/CompreFace face recognition). Never publish these.
+cameras/training/
+
+# Raw legacy Node-RED export. Superseded by the native YAML automations;
+# kept locally for reference only. Also embeds a real MQTT broker password.
+node_red_flows.json
+
+# Python bytecode / caches
+__pycache__/
+*.pyc
+
+# Local secrets — long-lived HA token and MQTT credentials are read from
+# these at runtime and must never be committed.
+.ha_token
+.mqtt_pass
+*.env
+.env.*
+
+# Mirrored Mac-side runtime state — tools/sync.py copies only source/config
+# files, but guard against accidental adds of data, media and credentials.
+frigate/media/
+frigate/config/*.db*
+frigate/config/.jwt_secret
+frigate/config/*.bak.*
+frigate/.env
+statusportal/.wrangler/
+*.db
+*.db-shm
+*.db-wal
+
+# OS cruft
+.DS_Store

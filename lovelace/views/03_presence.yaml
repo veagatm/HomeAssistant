@@ -1,0 +1,148 @@
+title: Presence
+path: presence
+icon: mdi:account-group
+cards:
+
+  # ── Who's home ──────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: People
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-person-card
+        entity: person.riley_hollis
+        name: Riley
+        secondary_info: last-changed
+        use_entity_picture: false
+        icon: mdi:account
+      - type: custom:mushroom-person-card
+        entity: person.cassandra_quinlan
+        name: Casey
+        secondary_info: last-changed
+        use_entity_picture: false
+        icon: mdi:account
+
+  # ── State flags ─────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Home State
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.away_mode_active
+        name: Away Mode
+        icon: mdi:home-export-outline
+        icon_color: >
+          {{ 'red' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.sleep_mode_active
+        name: Sleep Mode
+        icon: mdi:sleep
+        icon_color: >
+          {{ 'blue' if is_state('input_boolean.sleep_mode_active', 'on') else 'grey' }}
+
+  # ── Away mode controls ──────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Away Mode Controls
+
+  - type: entities
+    entities:
+      - entity: input_boolean.automation_away_mode
+        name: Away Mode Automation
+      - entity: input_boolean.automation_arriving_home
+        name: Arriving Home Automation
+
+  - type: custom:mushroom-title-card
+    subtitle: Snooze away mode automation
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: 1 hr
+        secondary: >
+          {% set ts = state_attr('input_datetime.snooze_away_mode', 'timestamp') %}
+          {% if ts and ts > now().timestamp() %}
+            until {{ ts | timestamp_custom('%-I:%M %p') }}
+          {% else %}active{% endif %}
+        icon: mdi:alarm-snooze
+        icon_color: >
+          {% set ts = state_attr('input_datetime.snooze_away_mode', 'timestamp') %}
+          {{ 'orange' if ts and ts > now().timestamp() else 'green' }}
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: away_mode, duration_minutes: 60 }
+      - type: custom:mushroom-template-card
+        primary: Until 7am
+        icon: mdi:weather-night
+        tap_action:
+          action: call-service
+          service: script.snooze_until_morning
+          service_data: { snooze_id: away_mode }
+      - type: custom:mushroom-template-card
+        primary: Clear
+        icon: mdi:alarm-off
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.clear_snooze
+          service_data: { snooze_id: away_mode }
+
+  - type: custom:mushroom-title-card
+    subtitle: Snooze arriving home automation
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: 1 hr
+        secondary: >
+          {% set ts = state_attr('input_datetime.snooze_arriving_home', 'timestamp') %}
+          {% if ts and ts > now().timestamp() %}
+            until {{ ts | timestamp_custom('%-I:%M %p') }}
+          {% else %}active{% endif %}
+        icon: mdi:alarm-snooze
+        icon_color: >
+          {% set ts = state_attr('input_datetime.snooze_arriving_home', 'timestamp') %}
+          {{ 'orange' if ts and ts > now().timestamp() else 'green' }}
+        tap_action:
+          action: call-service
+          service: script.snooze_automation
+          service_data: { snooze_id: arriving_home, duration_minutes: 60 }
+      - type: custom:mushroom-template-card
+        primary: Until 7am
+        icon: mdi:weather-night
+        tap_action:
+          action: call-service
+          service: script.snooze_until_morning
+          service_data: { snooze_id: arriving_home }
+      - type: custom:mushroom-template-card
+        primary: Clear
+        icon: mdi:alarm-off
+        icon_color: red
+        tap_action:
+          action: call-service
+          service: script.clear_snooze
+          service_data: { snooze_id: arriving_home }
+
+  # ── Find my phone ───────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Find My Phone
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Find Riley
+        secondary: Pixel 8
+        icon: mdi:cellphone-sound
+        icon_color: blue
+        tap_action:
+          action: call-service
+          service: script.find_riley_phone
+      - type: custom:mushroom-template-card
+        primary: Find Casey
+        secondary: Samsung
+        icon: mdi:cellphone-sound
+        icon_color: purple
+        tap_action:
+          action: call-service
+          service: script.find_casey_phone

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design 7 — Command Sidebar</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0d1117; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Roboto Mono', monospace;
+  color: #c9d1d9;
+  display: grid;
+  /* sidebar | kitchen | lr | cameras */
+  grid-template-columns: 170px 1fr 1fr 1fr;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* ── SIDEBAR ──────────────────────────────────────── */
+.sidebar {
+  background: #161b22; border-radius: 10px;
+  border: 1px solid #30363d;
+  padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.sb-clock {
+  text-align: center; padding: 12px 0 14px;
+  border-bottom: 1px solid #21262d;
+  margin-bottom: 14px;
+}
+.sb-clk { font-size: 34px; font-weight: 700; color: #f0f6fc; letter-spacing: 1px; line-height: 1; }
+.sb-ampm { font-size: 13px; color: #484f58; margin-top: 4px; }
+.sb-date { font-size: 10px; color: #484f58; margin-top: 2px; }
+
+.person-card {
+  background: #0d1117; border-radius: 8px; padding: 8px 10px;
+  border: 1px solid #21262d; margin-bottom: 7px;
+  display: flex; align-items: center; gap: 8px;
+}
+.av {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: white; flex-shrink: 0;
+}
+.avl { background: #1f6feb; }
+.avm { background: #8b5cf6; }
+.pn { font-size: 12px; font-weight: 700; color: #e6edf3; }
+.ps { font-size: 9.5px; }
+.phome { color: #3fb950; }
+.paway { color: #f85149; }
+
+.power-card {
+  background: #0d1117; border-radius: 8px; padding: 9px 10px;
+  border: 1px solid #21262d; margin-bottom: 7px;
+  text-align: center;
+}
+.pw-val { font-size: 20px; font-weight: 800; color: #e3b341; }
+.pw-lbl { font-size: 9px; color: #484f58; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; }
+
+.cast-btn {
+  background: #1f6feb; color: white; border-radius: 8px;
+  padding: 9px; font-size: 12px; font-weight: 700; cursor: pointer;
+  text-align: center; margin-top: auto;
+  border: 1px solid #388bfd;
+}
+
+/* ── CONTENT CARDS ──────────────────────────────────── */
+.card {
+  background: #161b22; border-radius: 10px;
+  border: 1px solid #30363d; padding: 12px 14px;
+  display: flex; flex-direction: column;
+}
+
+.ch {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+  font-weight: 700; padding-bottom: 8px;
+  border-bottom: 1px solid #21262d; margin-bottom: 10px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ch-k { color: #e3b341; }
+.ch-lr { color: #58a6ff; }
+.ch-cam { color: #39d353; }
+.ch-sub { font-size: 9px; color: #484f58; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* LIGHT ROWS */
+.lrow {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid #21262d; font-size: 11.5px;
+}
+.lrow:last-of-type { border-bottom: none; }
+.l-ico { font-size: 13px; width: 16px; }
+.l-name { flex: 1; color: #8b949e; }
+.l-pct { font-weight: 700; font-size: 11px; }
+.yk { color: #e3b341; } .yb { color: #58a6ff; } .yp { color: #a371f7; } .yoff { color: #484f58; }
+.tog { width: 30px; height: 17px; border-radius: 9px; position: relative; flex-shrink: 0; }
+.tok { background: #5a4a00; border: 1px solid #e3b341; }
+.tob { background: #0d2040; border: 1px solid #58a6ff; }
+.tf { background: #21262d; border: 1px solid #30363d; }
+.tog::after { content: ''; width: 13px; height: 13px; border-radius: 50%; background: white; position: absolute; top: 1px; }
+.tok::after { left: 15px; } .tob::after { left: 15px; } .tf::after { left: 1px; }
+
+.btrack { height: 3px; background: #21262d; border-radius: 2px; margin: 3px 0 8px; }
+.bk { height: 100%; border-radius: 2px; background: #e3b341; }
+.bb { height: 100%; border-radius: 2px; background: #58a6ff; }
+
+.mini-g { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 4px 0 10px; }
+.mini-t { background: #0d1117; border-radius: 6px; padding: 6px 8px; border: 1px solid #21262d; }
+.mt-n { font-size: 9px; color: #484f58; margin-bottom: 2px; }
+.mt-s { font-size: 11.5px; font-weight: 700; }
+
+.media-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; background: #0d1117; border-radius: 7px;
+  border: 1px solid #21262d; font-size: 11.5px; margin-bottom: 8px;
+}
+.mr-ico { font-size: 13px; }
+.mr-name { flex: 1; color: #8b949e; }
+.mr-state { color: #484f58; font-size: 10px; }
+
+.ind {
+  margin-top: auto;
+  background: #1a0e2e; border: 1px solid #6e40c9;
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.ind-ic { font-size: 20px; }
+.ind-n { font-size: 13px; font-weight: 800; color: #a371f7; }
+.ind-s { font-size: 9.5px; color: #484f58; }
+
+/* CAMERAS */
+.cam-wrap { display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.cam {
+  flex: 1; border-radius: 8px; background: #080b10;
+  border: 1px solid #21262d; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cam::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 40% 30%, #0a1a2e 0%, #050810 80%);
+}
+.cam-ic { position: relative; z-index: 1; font-size: 28px; opacity: 0.1; }
+.cam-t {
+  position: absolute; bottom: 6px; left: 8px; z-index: 2;
+  font-size: 9px; color: #484f58; background: rgba(0,0,0,0.7);
+  padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.cam-badge {
+  position: absolute; top: 6px; right: 7px; z-index: 2;
+  font-size: 8px; background: #238636; color: white;
+  padding: 2px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.3px;
+}
+
+/* SOIL */
+.soil-section { margin-top: 10px; border-top: 1px solid #21262d; padding-top: 10px; }
+.soil-lbl { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; color: #484f58; margin-bottom: 8px; }
+.srow { display: flex; align-items: center; gap: 7px; padding: 4px 0; }
+.s-ico { font-size: 12px; }
+.s-name { font-size: 10.5px; color: #6b7280; flex: 1; }
+.s-bar { width: 38px; height: 3px; background: #21262d; border-radius: 2px; flex-shrink: 0; }
+.s-fill { height: 100%; border-radius: 2px; background: #39d353; }
+.s-pct { font-size: 11px; font-weight: 700; color: #39d353; min-width: 26px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-clock">
+    <div class="sb-clk">9:42</div>
+    <div class="sb-ampm">AM</div>
+    <div class="sb-date">Thu May 15, 2026</div>
+  </div>
+
+  <div class="person-card">
+    <div class="av avl">L</div>
+    <div><div class="pn">Riley</div><div class="ps phome">● Home</div></div>
+  </div>
+  <div class="person-card">
+    <div class="av avm">M</div>
+    <div><div class="pn">Casey</div><div class="ps phome">● Home</div></div>
+  </div>
+
+  <div class="power-card">
+    <div class="pw-val">1,240 W</div>
+    <div class="pw-lbl">Power Draw</div>
+  </div>
+
+  <div class="cast-btn">📡 Cast Panel</div>
+</div>
+
+<!-- KITCHEN -->
+<div class="card">
+  <div class="ch ch-k">Kitchen <span class="ch-sub">🟢 Motion · 340 lx</span></div>
+
+  <div class="lrow">
+    <span class="l-ico">💡</span>
+    <span class="l-name">Kitchen</span>
+    <span class="l-pct yk">78%</span>
+    <div class="tog tok"></div>
+  </div>
+  <div class="btrack"><div class="bk" style="width:78%"></div></div>
+
+  <div class="mini-g">
+    <div class="mini-t"><div class="mt-n">Counter</div><div class="mt-s yk">60%</div></div>
+    <div class="mini-t"><div class="mt-n">Ceiling</div><div class="mt-s yk">85%</div></div>
+  </div>
+
+  <div class="media-row">
+    <span class="mr-ico">🔊</span>
+    <span class="mr-name">Kitchen Speaker</span>
+    <span class="mr-state">Idle</span>
+  </div>
+
+  <div class="ind">
+    <span class="ind-ic">📺</span>
+    <div><div class="ind-n">Industry — Max</div><div class="ind-s">tap=cast · hold=stop</div></div>
+  </div>
+</div>
+
+<!-- LIVING ROOM -->
+<div class="card">
+  <div class="ch ch-lr">Living Room <span class="ch-sub">⚪ Clear · 180 lx</span></div>
+
+  <div class="lrow">
+    <span class="l-ico">💡</span>
+    <span class="l-name">Living Room</span>
+    <span class="l-pct yoff">Off</span>
+    <div class="tog tf"></div>
+  </div>
+  <div class="btrack"><div class="bb" style="width:0%"></div></div>
+
+  <div class="mini-g">
+    <div class="mini-t"><div class="mt-n">Lamp</div><div class="mt-s yoff">Off</div></div>
+    <div class="mini-t"><div class="mt-n">TV Strip</div><div class="mt-s yp">40%</div></div>
+  </div>
+
+  <div class="media-row">
+    <span class="mr-ico">📺</span>
+    <span class="mr-name">Roku Ultra</span>
+    <span class="mr-state">Idle</span>
+  </div>
+</div>
+
+<!-- CAMERAS + SOIL -->
+<div class="card">
+  <div class="ch ch-cam">Cameras</div>
+
+  <div class="cam-wrap">
+    <div class="cam">
+      <span class="cam-ic">📷</span>
+      <div class="cam-t">Driveway</div>
+      <div class="cam-badge">LIVE</div>
+    </div>
+    <div class="cam">
+      <span class="cam-ic">📷</span>
+      <div class="cam-t">Backyard</div>
+      <div class="cam-badge">LIVE</div>
+    </div>
+  </div>
+
+  <div class="soil-section">
+    <div class="soil-lbl">Soil Moisture</div>
+    <div class="srow">
+      <span class="s-ico">🌿</span><span class="s-name">Fescue</span>
+      <div class="s-bar"><div class="s-fill" style="width:76%"></div></div>
+      <span class="s-pct">38%</span>
+    </div>
+    <div class="srow">
+      <span class="s-ico">🌲</span><span class="s-name">Giant</span>
+      <div class="s-bar"><div class="s-fill" style="width:84%"></div></div>
+      <span class="s-pct">42%</span>
+    </div>
+    <div class="srow">
+      <span class="s-ico">🌳</span><span class="s-name">Indoor</span>
+      <div class="s-bar"><div class="s-fill" style="width:88%"></div></div>
+      <span class="s-pct">22%</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

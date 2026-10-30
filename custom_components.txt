@@ -1,0 +1,5 @@
+# HACS / custom integrations installed on HA Green (tools/sync.py)
+frigate      5.15.3     https://github.com/blakeblackshear/frigate
+hacs         2.0.5      https://hacs.xyz/docs/use/
+ldata        2.0.5      https://github.com/rwoldberg/ldata-ha
+localtuya    5.2.3      https://github.com/rospogrigio/localtuya/

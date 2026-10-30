@@ -1,0 +1,251 @@
+title: Energy
+path: energy
+icon: mdi:lightning-bolt
+cards:
+
+  # ══════════════════════════════════════════════════════════════════
+  # WHOLE-HOME SUMMARY
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    title: Whole-Home Energy
+    subtitle: Leviton LWHEM-2R via ldata
+
+  - type: entities
+    entities:
+      - entity: sensor.breaker_panel_watts
+        name: Current Draw
+        icon: mdi:flash
+      - entity: sensor.breaker_panel_daily_import
+        name: Today's Grid Usage
+        icon: mdi:counter
+      - entity: sensor.breaker_panel_amps
+        name: Total Amps
+        icon: mdi:current-ac
+      - entity: sensor.breaker_panel_volts_leg_1
+        name: Leg 1 Voltage
+        icon: mdi:sine-wave
+      - entity: sensor.breaker_panel_volts_leg_2
+        name: Leg 2 Voltage
+        icon: mdi:sine-wave
+
+  # ── Live analytics ───────────────────────────────────────────────
+  - type: markdown
+    content: >
+      {% set circuits = [
+        ('Office & Misc', states('sensor.office_and_misc_watts') | float(0)),
+        ('Furnace',       states('sensor.furnace_watts')          | float(0)),
+        ('Basement Lights', states('sensor.basement_lights_watts') | float(0)),
+        ('Laundry Lights',  states('sensor.laundry_lights_watts')  | float(0)),
+        ('Dryer',           states('sensor.dryer_watts')           | float(0)),
+        ('Range',           states('sensor.range_watts')           | float(0)),
+      ] %}
+      {% set ns = namespace(total=0, top_name='—', top_w=0) %}
+      {% for name, w in circuits %}
+        {% set ns.total = ns.total + w %}
+        {% if w > ns.top_w %}{% set ns.top_w = w %}{% set ns.top_name = name %}{% endif %}
+      {% endfor %}
+      {% set panel = states('sensor.breaker_panel_watts') | float(0) %}
+      {% set gap = [panel - ns.total, 0] | max %}
+
+      **Top consumer:** {{ ns.top_name }} — {{ ns.top_w | int }} W
+
+      **Monitored:** {{ ns.total | int }} W &nbsp;·&nbsp; **Total panel:** {{ panel | int }} W
+      {% if gap > 100 %}
+      ⚠️ **{{ gap | int }} W unmonitored** — Downstairs panel offline (A/C · Main Lights · Smart Connect)
+      {% endif %}
+
+      ---
+      **Always-on cost** (at $0.12/kWh, if load held constant):
+      {% for name, w in circuits | sort(attribute=1, reverse=true) %}{% if w > 5 %}
+      - {{ name }}: **${{ (w / 1000 * 0.12 * 730) | round(2) }}/mo**
+      {% endif %}{% endfor %}
+
+  # ══════════════════════════════════════════════════════════════════
+  # LIVE CIRCUIT LOADS
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    subtitle: Live Circuit Load
+
+  - type: entities
+    entities:
+      - entity: sensor.office_and_misc_watts
+        name: Office & Misc
+        icon: mdi:monitor
+      - entity: sensor.furnace_watts
+        name: Furnace
+        icon: mdi:heat-wave
+      - entity: sensor.basement_lights_watts
+        name: Basement Lights
+        icon: mdi:lightbulb
+      - entity: sensor.laundry_lights_watts
+        name: Laundry Lights
+        icon: mdi:lightbulb-outline
+      - entity: sensor.dryer_watts
+        name: Dryer
+        icon: mdi:tumble-dryer
+      - entity: sensor.range_watts
+        name: Range
+        icon: mdi:stove
+
+  # ── Offline circuits (no HA entities until Downstairs panel back online) ──
+  - type: markdown
+    content: >
+      **Downstairs Panel — OFFLINE**
+      A/C · Lights (Main Floor) · Smart Connect — no data until panel reconnects.
+      Check the Leviton module for that sub-panel: power cycle it or check BLE range to the LWHEM-2R.
+
+  # ══════════════════════════════════════════════════════════════════
+  # CIRCUIT WATTAGE CHART (last 24 h)
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    subtitle: Circuit Breakdown — Last 24 Hours
+
+  - type: history-graph
+    title: Wattage by Circuit
+    hours_to_show: 24
+    entities:
+      - entity: sensor.office_and_misc_watts
+        name: Office & Misc
+      - entity: sensor.furnace_watts
+        name: Furnace
+      - entity: sensor.basement_lights_watts
+        name: Basement
+      - entity: sensor.laundry_lights_watts
+        name: Laundry
+      - entity: sensor.dryer_watts
+        name: Dryer
+      - entity: sensor.range_watts
+        name: Range
+
+  # ── Total panel draw (24 h) ──────────────────────────────────────
+  - type: history-graph
+    title: Total Panel Draw
+    hours_to_show: 24
+    entities:
+      - entity: sensor.breaker_panel_watts
+        name: Total (W)
+      - entity: sensor.breaker_panel_watts_leg_1
+        name: Leg 1
+      - entity: sensor.breaker_panel_watts_leg_2
+        name: Leg 2
+
+  # ══════════════════════════════════════════════════════════════════
+  # DAILY kWh BY CIRCUIT (last 7 days)
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    subtitle: Daily Usage by Circuit — Last 7 Days
+
+  - type: statistics-graph
+    title: Circuit Daily kWh
+    period: day
+    days_to_show: 7
+    chart_type: bar
+    stat_types:
+      - sum
+    entities:
+      - entity: sensor.office_and_misc_daily_consumption
+        name: Office & Misc
+      - entity: sensor.furnace_daily_import
+        name: Furnace
+      - entity: sensor.basement_lights_daily_consumption
+        name: Basement
+      - entity: sensor.laundry_lights_daily_consumption
+        name: Laundry
+      - entity: sensor.dryer_daily_consumption
+        name: Dryer
+      - entity: sensor.range_daily_consumption
+        name: Range
+
+  # ── Today's kWh totals ──────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    subtitle: Today's Usage by Circuit
+
+  - type: entities
+    entities:
+      - entity: sensor.office_and_misc_daily_consumption
+        name: Office & Misc
+        icon: mdi:monitor
+      - entity: sensor.furnace_daily_import
+        name: Furnace
+        icon: mdi:heat-wave
+      - entity: sensor.basement_lights_daily_consumption
+        name: Basement Lights
+        icon: mdi:lightbulb
+      - entity: sensor.laundry_lights_daily_consumption
+        name: Laundry Lights
+        icon: mdi:lightbulb-outline
+      - entity: sensor.dryer_daily_consumption
+        name: Dryer
+        icon: mdi:tumble-dryer
+      - entity: sensor.range_daily_consumption
+        name: Range
+        icon: mdi:stove
+      - entity: sensor.breaker_panel_daily_import
+        name: "— Panel Total (grid)"
+        icon: mdi:transmission-tower
+
+  # ══════════════════════════════════════════════════════════════════
+  # LINKS & CONNECTIVITY
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    subtitle: HA Energy Dashboard
+
+  - type: custom:mushroom-template-card
+    primary: Open Energy Dashboard
+    secondary: HA's built-in kWh/cost tracking
+    icon: mdi:chart-line
+    tap_action:
+      action: url
+      url_path: /energy
+
+  - type: custom:mushroom-title-card
+    title: Connectivity
+    subtitle: Requires ping sensor in configuration.yaml
+
+  - type: custom:mushroom-entity-card
+    entity: binary_sensor.ping_google
+    name: Internet (8.8.8.8)
+    icon: mdi:web
+    icon_color: >
+      {{ 'green' if is_state('binary_sensor.ping_google', 'on') else 'red' }}
+
+  # ══════════════════════════════════════════════════════════════════
+  # SPEED TEST — Mac Mini (hardwired), hourly via launchd + Cloudflare
+  # ══════════════════════════════════════════════════════════════════
+  - type: custom:mushroom-title-card
+    subtitle: Speed Test — Mac Mini, hourly
+
+  - type: entities
+    entities:
+      - entity: sensor.mac_mini_speed_test_download_speed
+        name: Download
+        icon: mdi:download-network
+      - entity: sensor.mac_mini_speed_test_upload_speed
+        name: Upload
+        icon: mdi:upload-network
+      - entity: sensor.mac_mini_speed_test_speedtest_ping
+        name: Ping
+        icon: mdi:swap-horizontal
+
+  - type: history-graph
+    title: Speed — Last 48 Hours
+    hours_to_show: 48
+    entities:
+      - entity: sensor.mac_mini_speed_test_download_speed
+        name: Download (Mbps)
+      - entity: sensor.mac_mini_speed_test_upload_speed
+        name: Upload (Mbps)
+
+  - type: statistics-graph
+    title: Speed Consistency — Last 7 Days
+    period: hour
+    days_to_show: 7
+    stat_types:
+      - mean
+      - min
+      - max
+    entities:
+      - entity: sensor.mac_mini_speed_test_download_speed
+        name: Download (Mbps)
+      - entity: sensor.mac_mini_speed_test_upload_speed
+        name: Upload (Mbps)

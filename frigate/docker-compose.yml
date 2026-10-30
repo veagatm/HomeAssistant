@@ -1,0 +1,134 @@
+version: "3.9"
+
+services:
+
+  # ── Frigate NVR ────────────────────────────────────────────────────────────────
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    restart: unless-stopped
+    privileged: true
+    shm_size: "256mb"
+    volumes:
+      - ./config:/config
+      - ${FRIGATE_MEDIA_PATH:-./media}:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5050:5000"   # web UI (5000 conflicts with macOS AirPlay Receiver)
+      - "8554:8554"   # RTSP restream
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    environment:
+      FRIGATE_MQTT_PASSWORD: "${MQTT_PASSWORD}"
+      FRIGATE_FRONT_IP: "${CAMERA_FRONT_IP}"
+      FRIGATE_FRONT_PASS: "${CAMERA_FRONT_PASS}"
+      FRIGATE_BACKYARD_IP: "${CAMERA_BACKYARD_IP}"
+      FRIGATE_BACKYARD_PASS: "${CAMERA_BACKYARD_PASS}"
+      FRIGATE_FLOODLIGHT_IP: "${CAMERA_FLOODLIGHT_IP}"
+      FRIGATE_FLOODLIGHT_PASS: "${CAMERA_FLOODLIGHT_PASS}"
+
+  # ── Re-ID clustering service (street camera, runs alongside) ───────────────────
+  reid-service:
+    build: ../reid
+    container_name: reid-service
+    restart: unless-stopped
+    volumes:
+      - reid-data:/data
+    environment:
+      RTSP_URL: "rtsp://admin:${CAMERA_STREET_PASS}@${CAMERA_STREET_IP}:554/h264Preview_01_main"
+      MQTT_HOST: "192.168.68.3"
+      MQTT_PORT: "1883"
+      MQTT_USER: "addons"
+      MQTT_PASSWORD: "${MQTT_PASSWORD}"
+      DB_PATH: "/data/clusters.db"
+      FAISS_THRESHOLD: "0.6"
+
+  # ── Code Enforcement Detector ─────────────────────────────────────────────────
+  code-enforcement:
+    build: ./code_enforcement
+    container_name: code-enforcement
+    restart: unless-stopped
+    volumes:
+      - code-enforcement-data:/data
+    environment:
+      MQTT_HOST: "192.168.68.3"
+      MQTT_PORT: "1883"
+      MQTT_USER: "addons"
+      MQTT_PASSWORD: "${MQTT_PASSWORD}"
+      DB_PATH: "/data/code_enforcement.db"
+      MODEL_DIR: "/data/easyocr_models"
+      FRIGATE_CAMERA: "front"
+      FRIGATE_ZONE: "road_zone"
+      FRIGATE_URL: "http://192.168.68.142:5050"
+      PHASH_THRESHOLD: "8"   # lowered from default 12 (2026-07-07) — the 9 known_vehicles
+                              # fingerprints seeded 6/17 turned out to be near-worthless
+                              # (barely-visible vehicle, edge-of-frame crops), removed;
+                              # tightening threshold to reduce false-positive my_vehicle
+                              # matches (was the likely reason the code-enforcement SUV
+                              # has never been OCR-flagged despite 3 weeks of runtime)
+
+  # ── Code Enforcement Detector — Floodlight (second source) ─────────────────────
+  # Added 2026-07-07: `front`'s road_zone only captures a thin edge-of-frame sliver
+  # of curb vehicles — this watches the floodlight's wider street_zone instead,
+  # which frames parked/passing cars as a clear distinct shape. Same image/DB/model
+  # dir as code-enforcement above (shares code-enforcement-data volume so both
+  # write into one unified detections table) — only the watched camera/zone and
+  # MQTT client ID differ (must be unique or the two instances fight over the
+  # same MQTT connection and repeatedly kick each other offline).
+  code-enforcement-floodlight:
+    build: ./code_enforcement
+    container_name: code-enforcement-floodlight
+    restart: unless-stopped
+    volumes:
+      - code-enforcement-data:/data
+    environment:
+      MQTT_HOST: "192.168.68.3"
+      MQTT_PORT: "1883"
+      MQTT_USER: "addons"
+      MQTT_PASSWORD: "${MQTT_PASSWORD}"
+      MQTT_CLIENT_ID: "ce-detector-floodlight"
+      DB_PATH: "/data/code_enforcement.db"
+      MODEL_DIR: "/data/easyocr_models"
+      FRIGATE_CAMERA: "front_floodlight"
+      FRIGATE_ZONE: "street_zone"
+      FRIGATE_URL: "http://192.168.68.142:5050"
+      PHASH_THRESHOLD: "8"
+
+  # ── Vehicle Detection Dashboard ───────────────────────────────────────────────
+  vehicle-dashboard:
+    build: ./vehicle_dashboard
+    container_name: vehicle-dashboard
+    restart: unless-stopped
+    volumes:
+      - code-enforcement-data:/data
+    ports:
+      - "8501:8501"
+    environment:
+      DB_PATH: "/data/code_enforcement.db"
+      FRIGATE_URL: "http://192.168.68.142:5050"
+      MQTT_HOST: "192.168.68.3"
+      MQTT_PORT: "1883"
+      MQTT_USER: "addons"
+      MQTT_PASSWORD: "${MQTT_PASSWORD}"
+
+  # ── Bird Tracker ───────────────────────────────────────────────────────────────
+  bird-tracker:
+    build: ./bird_tracker
+    container_name: bird-tracker
+    restart: unless-stopped
+    volumes:
+      - bird-tracker-data:/data
+    environment:
+      MQTT_HOST: "192.168.68.3"
+      MQTT_PORT: "1883"
+      MQTT_USER: "addons"
+      MQTT_PASSWORD: "${MQTT_PASSWORD}"
+      DB_PATH: "/data/birds.db"
+      FRIGATE_CAMERA: "backyard"
+      FRIGATE_ZONE: "bird_feeder"
+      FRIGATE_URL: "http://192.168.68.142:5050"
+
+volumes:
+  reid-data:
+  code-enforcement-data:
+  bird-tracker-data:

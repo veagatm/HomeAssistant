@@ -1,0 +1,10 @@
+#!/bin/sh
+# Last line of defence: scan every commit about to leave this machine —
+# file contents, file names, commit messages and author identity. Scans the
+# full history behind each pushed ref (the repo is small; this stays fast).
+root="$(git rev-parse --show-toplevel)"
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue          # deleting a remote branch
+  python3 "$root/tools/check_leaks.py" --range "$local_sha" || exit 1
+done

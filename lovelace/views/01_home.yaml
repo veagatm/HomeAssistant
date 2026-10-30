@@ -1,0 +1,195 @@
+title: Home
+path: home
+icon: mdi:home
+
+cards:
+
+  # ── People ────────────────────────────────────────────────────────────────────
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-person-card
+        entity: person.riley_hollis
+        name: Riley
+        secondary_info: last-changed
+        use_entity_picture: false
+        icon: mdi:account
+      - type: custom:mushroom-person-card
+        entity: person.cassandra_quinlan
+        name: Casey
+        secondary_info: last-changed
+        use_entity_picture: false
+        icon: mdi:account
+
+  # ── Mode status ───────────────────────────────────────────────────────────────
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.away_mode_active
+        name: Away
+        icon: mdi:home-export-outline
+        icon_color: >
+          {{ 'orange' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.sleep_mode_active
+        name: Sleep
+        icon: mdi:sleep
+        icon_color: >
+          {{ 'indigo' if is_state('input_boolean.sleep_mode_active', 'on') else 'disabled' }}
+      - type: custom:mushroom-template-card
+        primary: Internet
+        icon: >
+          {{ 'mdi:web-off' if is_state('binary_sensor.ping_google', 'off') else 'mdi:web' }}
+        icon_color: >
+          {{ 'red' if is_state('binary_sensor.ping_google', 'off') else 'teal' }}
+        secondary: >
+          {{ 'Down' if is_state('binary_sensor.ping_google', 'off') else 'Online' }}
+
+  # ── Lighting Mode ─────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Lighting Mode
+
+  - type: custom:mushroom-select-card
+    entity: input_select.house_lighting_mode
+    name: All Rooms
+    icon: mdi:home-lightbulb
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-select-card
+        entity: input_select.lighting_mode_living_room
+        name: Living Room
+        icon: mdi:sofa
+      - type: custom:mushroom-select-card
+        entity: input_select.lighting_mode_bedroom
+        name: Bedroom
+        icon: mdi:bed
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-select-card
+        entity: input_select.lighting_mode_kitchen
+        name: Kitchen
+        icon: mdi:chef-hat
+      - type: custom:mushroom-template-card
+        primary: Mode Settings
+        secondary: Brightness & color temp
+        icon: mdi:tune
+        icon_color: blue
+        tap_action:
+          action: navigate
+          navigation_path: "#mode_settings_popup"
+
+  # ── Climate ───────────────────────────────────────────────────────────────────
+  - type: thermostat
+    entity: climate.ecobee
+    name: Thermostat
+
+  # ── Lights ── entity at top level so tap_action: toggle works ─────────────────
+  - type: custom:mushroom-title-card
+    title: Lights
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Living Room
+        secondary: >
+          {% if is_state('light.living_room', 'on') %}
+            On · {{ (state_attr('light.living_room', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:sofa
+        icon_color: >
+          {{ 'amber' if is_state('light.living_room', 'on') else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: light.toggle
+          target:
+            entity_id: light.living_room
+      - type: custom:mushroom-template-card
+        primary: Kitchen
+        secondary: >
+          {% if is_state('light.kitchen', 'on') %}
+            On · {{ (state_attr('light.kitchen', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:chef-hat
+        icon_color: >
+          {{ 'teal' if is_state('light.kitchen', 'on') else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: light.toggle
+          target:
+            entity_id: light.kitchen
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Bedroom
+        secondary: >
+          {% if is_state('light.bedroom', 'on') %}
+            On · {{ (state_attr('light.bedroom', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:bed
+        icon_color: >
+          {{ 'indigo' if is_state('light.bedroom', 'on') else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: light.toggle
+          target:
+            entity_id: light.bedroom
+      - type: custom:mushroom-template-card
+        primary: Office
+        secondary: >
+          {% if is_state('light.office', 'on') %}
+            On · {{ (state_attr('light.office', 'brightness') | int / 255 * 100) | round(0) }}%
+          {% else %}Off{% endif %}
+        icon: mdi:desk-lamp
+        icon_color: >
+          {{ 'purple' if is_state('light.office', 'on') else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: light.toggle
+          target:
+            entity_id: light.office
+
+  # ── Quick actions ─────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Quick Actions
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Good Night
+        secondary: All lights off
+        icon: mdi:weather-night
+        icon_color: indigo
+        tap_action:
+          action: call-service
+          service: script.good_night_all
+      - type: custom:mushroom-template-card
+        primary: Set Trash Night
+        secondary: >
+          {{ 'Set ✓' if is_state('input_boolean.trash_night', 'on') else 'Not set' }}
+        icon: mdi:trash-can
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.trash_night', 'on') else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: script.set_trash_night
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Find Riley
+        secondary: Pixel 8
+        icon: mdi:cellphone-sound
+        icon_color: cyan
+        tap_action:
+          action: call-service
+          service: script.find_riley_phone
+      - type: custom:mushroom-template-card
+        primary: Find Casey
+        secondary: Samsung
+        icon: mdi:cellphone-sound
+        icon_color: purple
+        tap_action:
+          action: call-service
+          service: script.find_casey_phone

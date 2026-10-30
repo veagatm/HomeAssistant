@@ -1,0 +1,543 @@
+title: Garden
+path: garden
+icon: mdi:sprinkler-variant
+
+cards:
+
+  # ── Zone status row ────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Irrigation Zones
+    subtitle: Tap a zone to open controls
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Trees
+        secondary: >
+          {% if is_state('switch.trees_valve', 'on') %}
+            Open · {{ states('sensor.trees_valve_flow') | round(1) }} L/min
+          {% elif states('switch.trees_valve') in ['unavailable', 'unknown'] %}
+            (no valve yet)
+          {% else %}
+            {% set last = states('input_datetime.irrigation_trees_last_run') %}
+            {% if last not in ('unknown', 'unavailable') %}
+              last {{ as_datetime(last) | as_local | as_timestamp | timestamp_custom('%-m/%-d %-I:%M %p') }}
+            {% else %}never run{% endif %}
+          {% endif %}
+        icon: mdi:tree
+        icon_color: >
+          {{ 'green' if is_state('switch.trees_valve', 'on') else 'disabled' }}
+        badge_icon: >
+          {% if is_state('switch.trees_valve', 'on') %}mdi:water{% endif %}
+        badge_color: blue
+        tap_action:
+          action: navigate
+          navigation_path: "#irrigation_trees"
+
+      - type: custom:mushroom-template-card
+        primary: Sprinklers
+        secondary: >
+          {% if is_state('switch.sprinklers_valve', 'on') %}
+            Open · {{ states('sensor.sprinklers_valve_flow') | round(1) }} L/min
+          {% elif states('switch.sprinklers_valve') in ['unavailable', 'unknown'] %}
+            (no valve yet)
+          {% else %}
+            {% set last = states('input_datetime.irrigation_sprinklers_last_run') %}
+            {% if last not in ('unknown', 'unavailable') %}
+              last {{ as_datetime(last) | as_local | as_timestamp | timestamp_custom('%-m/%-d %-I:%M %p') }}
+            {% else %}never run{% endif %}
+          {% endif %}
+        icon: mdi:sprinkler
+        icon_color: >
+          {{ 'blue' if is_state('switch.sprinklers_valve', 'on') else 'disabled' }}
+        badge_icon: >
+          {% if is_state('switch.sprinklers_valve', 'on') %}mdi:water{% endif %}
+        badge_color: blue
+        tap_action:
+          action: navigate
+          navigation_path: "#irrigation_sprinklers"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Utility
+        secondary: >
+          {% if is_state('switch.utility_valve', 'on') %}
+            Open · {{ states('sensor.utility_valve_flow') | round(1) }} L/min
+          {% elif states('switch.utility_valve') in ['unavailable', 'unknown'] %}
+            (no valve yet)
+          {% else %}Closed · manual use only{% endif %}
+        icon: mdi:water-pump
+        icon_color: >
+          {{ 'cyan' if is_state('switch.utility_valve', 'on') else 'disabled' }}
+        badge_icon: >
+          {% if is_state('switch.utility_valve', 'on') %}mdi:water{% endif %}
+        badge_color: blue
+        tap_action:
+          action: navigate
+          navigation_path: "#irrigation_utility"
+
+      - type: custom:mushroom-template-card
+        primary: Stop All
+        secondary: >
+          {% set any_open = is_state('switch.trees_valve', 'on') or
+             is_state('switch.sprinklers_valve', 'on') or
+             is_state('switch.utility_valve', 'on') %}
+          {{ 'Zones running!' if any_open else 'All zones closed' }}
+        icon: mdi:stop-circle
+        icon_color: >
+          {% set any_open = is_state('switch.trees_valve', 'on') or
+             is_state('switch.sprinklers_valve', 'on') or
+             is_state('switch.utility_valve', 'on') %}
+          {{ 'red' if any_open else 'disabled' }}
+        tap_action:
+          action: call-service
+          service: script.stop_all_irrigation
+
+  # ── Schedule settings ──────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Schedule Settings
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.irrigation_sprinklers_enabled
+        name: Sprinklers
+        icon: mdi:sprinkler
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.irrigation_trees_enabled
+        name: Trees
+        icon: mdi:tree
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.irrigation_rain_skip
+        name: Rain Skip
+        icon: mdi:weather-rainy
+
+  - type: entities
+    title: Schedule times
+    entities:
+      - entity: input_datetime.irrigation_sprinklers_last_run
+        name: Sprinklers last run
+        icon: mdi:clock-check
+      - entity: input_datetime.irrigation_trees_last_run
+        name: Trees last run
+        icon: mdi:clock-check
+
+
+  # ── Bubble Card Popup: Trees ───────────────────────────────────────────────
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#irrigation_trees"
+        name: Trees
+        icon: mdi:tree
+
+      - type: custom:mushroom-template-card
+        primary: Trees Valve
+        secondary: >
+          {% if is_state('switch.trees_valve', 'on') %}
+            Open · {{ states('sensor.trees_valve_flow') | round(1) }} L/min
+          {% else %}Closed{% endif %}
+        icon: mdi:tree
+        icon_color: >
+          {{ 'green' if is_state('switch.trees_valve', 'on') else 'grey' }}
+        tap_action:
+          action: call-service
+          service: switch.toggle
+          target:
+            entity_id: switch.trees_valve
+
+      - type: custom:mushroom-title-card
+        subtitle: Run for...
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 20 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.trees_valve
+                duration_minutes: 20
+          - type: custom:mushroom-template-card
+            primary: 45 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.trees_valve
+                duration_minutes: 45
+          - type: custom:mushroom-template-card
+            primary: 60 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.trees_valve
+                duration_minutes: 60
+          - type: custom:mushroom-template-card
+            primary: Stop
+            icon: mdi:stop
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: switch.turn_off
+              target:
+                entity_id: switch.trees_valve
+
+      - type: entities
+        entities:
+          - entity: sensor.trees_valve_flow
+            name: Flow rate
+            icon: mdi:water-flow
+          - entity: sensor.trees_valve_battery
+            name: Battery
+            icon: mdi:battery
+          - entity: input_datetime.irrigation_trees_last_run
+            name: Last run
+            icon: mdi:clock-check
+          - entity: input_boolean.irrigation_trees_enabled
+            name: Schedule enabled
+            icon: mdi:calendar-clock
+
+
+  # ── Bubble Card Popup: Sprinklers ──────────────────────────────────────────
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#irrigation_sprinklers"
+        name: Sprinklers
+        icon: mdi:sprinkler
+
+      - type: custom:mushroom-template-card
+        primary: Sprinklers Valve
+        secondary: >
+          {% if is_state('switch.sprinklers_valve', 'on') %}
+            Open · {{ states('sensor.sprinklers_valve_flow') | round(1) }} L/min
+          {% else %}Closed{% endif %}
+        icon: mdi:sprinkler
+        icon_color: >
+          {{ 'blue' if is_state('switch.sprinklers_valve', 'on') else 'grey' }}
+        tap_action:
+          action: call-service
+          service: switch.toggle
+          target:
+            entity_id: switch.sprinklers_valve
+
+      - type: custom:mushroom-title-card
+        subtitle: Run for...
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 10 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.sprinklers_valve
+                duration_minutes: 10
+          - type: custom:mushroom-template-card
+            primary: 15 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.sprinklers_valve
+                duration_minutes: 15
+          - type: custom:mushroom-template-card
+            primary: 20 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.sprinklers_valve
+                duration_minutes: 20
+          - type: custom:mushroom-template-card
+            primary: Stop
+            icon: mdi:stop
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: switch.turn_off
+              target:
+                entity_id: switch.sprinklers_valve
+
+      - type: entities
+        entities:
+          - entity: sensor.sprinklers_valve_flow
+            name: Flow rate
+            icon: mdi:water-flow
+          - entity: sensor.sprinklers_valve_battery
+            name: Battery
+            icon: mdi:battery
+          - entity: input_datetime.irrigation_sprinklers_last_run
+            name: Last run
+            icon: mdi:clock-check
+          - entity: input_boolean.irrigation_sprinklers_enabled
+            name: Schedule enabled
+            icon: mdi:calendar-clock
+
+
+  # ── Bubble Card Popup: Utility ─────────────────────────────────────────────
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#irrigation_utility"
+        name: Utility
+        icon: mdi:water-pump
+
+      - type: custom:mushroom-template-card
+        primary: Utility Valve
+        secondary: >
+          {% if is_state('switch.utility_valve', 'on') %}
+            Open · {{ states('sensor.utility_valve_flow') | round(1) }} L/min
+          {% else %}Closed · manual use only{% endif %}
+        icon: mdi:water-pump
+        icon_color: >
+          {{ 'cyan' if is_state('switch.utility_valve', 'on') else 'grey' }}
+        tap_action:
+          action: call-service
+          service: switch.toggle
+          target:
+            entity_id: switch.utility_valve
+
+      - type: custom:mushroom-title-card
+        subtitle: Run for...
+
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 10 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.utility_valve
+                duration_minutes: 10
+          - type: custom:mushroom-template-card
+            primary: 30 min
+            icon: mdi:timer
+            tap_action:
+              action: call-service
+              service: script.run_irrigation_zone
+              service_data:
+                zone_entity: switch.utility_valve
+                duration_minutes: 30
+          - type: custom:mushroom-template-card
+            primary: Stop
+            icon: mdi:stop
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: switch.turn_off
+              target:
+                entity_id: switch.utility_valve
+
+      - type: entities
+        entities:
+          - entity: sensor.utility_valve_flow
+            name: Flow rate
+            icon: mdi:water-flow
+          - entity: sensor.utility_valve_battery
+            name: Battery
+            icon: mdi:battery
+
+
+  # ── Soil Moisture ──────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Soil Moisture
+    subtitle: Smart Soil Sensor Gen2 · Zigbee · alerts fire after 30 min below threshold
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Fescue Grass
+        secondary: >
+          {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+          {% if m < 0 %}Unknown
+          {% elif m < 25 %}{{ m | round(1) }}% — needs water!
+          {% elif m < 30 %}{{ m | round(1) }}% — low
+          {% elif m <= 50 %}{{ m | round(1) }}% — healthy
+          {% else %}{{ m | round(1) }}% — saturated
+          {% endif %}
+        icon: mdi:grass
+        icon_color: >
+          {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+          {% if m < 0 %}grey
+          {% elif m < 25 %}red
+          {% elif m < 30 %}orange
+          {% elif m <= 50 %}green
+          {% else %}blue
+          {% endif %}
+        badge_icon: >
+          {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+          {{ 'mdi:alert' if m >= 0 and m < 25 else '' }}
+        badge_color: red
+
+      - type: custom:mushroom-template-card
+        primary: Green Giant
+        secondary: >
+          {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+          {% if m < 0 %}Unknown
+          {% elif m < 20 %}{{ m | round(1) }}% — needs water!
+          {% elif m < 35 %}{{ m | round(1) }}% — low
+          {% elif m <= 50 %}{{ m | round(1) }}% — healthy
+          {% else %}{{ m | round(1) }}% — saturated
+          {% endif %}
+        icon: mdi:pine-tree
+        icon_color: >
+          {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+          {% if m < 0 %}grey
+          {% elif m < 20 %}red
+          {% elif m < 35 %}orange
+          {% elif m <= 50 %}green
+          {% else %}blue
+          {% endif %}
+        badge_icon: >
+          {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+          {{ 'mdi:alert' if m >= 0 and m < 20 else '' }}
+        badge_color: red
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Indoor Tree
+        secondary: >
+          {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+          {% if m < 0 %}Unknown
+          {% elif m < 10 %}{{ m | round(1) }}% — needs water!
+          {% elif m < 15 %}{{ m | round(1) }}% — low
+          {% elif m <= 25 %}{{ m | round(1) }}% — healthy
+          {% else %}{{ m | round(1) }}% — well watered
+          {% endif %}
+        icon: mdi:tree-outline
+        icon_color: >
+          {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+          {% if m < 0 %}grey
+          {% elif m < 10 %}red
+          {% elif m < 15 %}orange
+          {% elif m <= 25 %}green
+          {% else %}blue
+          {% endif %}
+        badge_icon: >
+          {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+          {{ 'mdi:alert' if m >= 0 and m < 10 else '' }}
+        badge_color: red
+
+  - type: custom:mushroom-title-card
+    subtitle: "Fescue Grass — 7-Day Trend  ·  healthy: 30–50%  ·  alert: <25%"
+
+  - type: statistics-graph
+    entities:
+      - entity: sensor.fescue_grass_soil_moisture_soil_moisture
+        name: "Moisture %"
+      - entity: input_number.plant_fescue_target_low
+        name: "Target Low (30%)"
+      - entity: input_number.plant_fescue_target_high
+        name: "Target High (50%)"
+    stat_types:
+      - mean
+    period: hour
+    days_to_show: 7
+
+  - type: custom:mushroom-title-card
+    subtitle: "Green Giant — 7-Day Trend  ·  healthy: 35–50%  ·  alert: <20%"
+
+  - type: statistics-graph
+    entities:
+      - entity: sensor.green_giant_soil_sensor_soil_moisture
+        name: "Moisture %"
+      - entity: input_number.plant_green_giant_target_low
+        name: "Target Low (35%)"
+      - entity: input_number.plant_green_giant_target_high
+        name: "Target High (50%)"
+    stat_types:
+      - mean
+    period: hour
+    days_to_show: 7
+
+  - type: custom:mushroom-title-card
+    subtitle: "Indoor Tree (Mass Cane) — 7-Day Trend  ·  healthy: 15–25%  ·  alert: <10%"
+
+  - type: statistics-graph
+    entities:
+      - entity: sensor.indoor_tree_soil_moisture_soil_moisture
+        name: "Moisture %"
+      - entity: input_number.plant_indoor_tree_target_low
+        name: "Target Low (15%)"
+      - entity: input_number.plant_indoor_tree_target_high
+        name: "Target High (25%)"
+    stat_types:
+      - mean
+    period: hour
+    days_to_show: 7
+
+  - type: custom:mushroom-title-card
+    title: Low Moisture Alerts
+    subtitle: "Fescue <25%  ·  Green Giant <20%  ·  Indoor Tree <10%  ·  24-hr max per plant"
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automation_plant_fescue
+        name: Fescue
+        icon: mdi:grass
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automation_plant_fescue', 'on') else 'red' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automation_plant_green_giant
+        name: Green Giant
+        icon: mdi:pine-tree
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automation_plant_green_giant', 'on') else 'red' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automation_plant_indoor_tree
+        name: Indoor Tree
+        icon: mdi:tree-outline
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automation_plant_indoor_tree', 'on') else 'red' }}
+
+  - type: custom:mushroom-title-card
+    subtitle: Sensor Details
+
+  - type: entities
+    entities:
+      - entity: sensor.fescue_grass_soil_moisture_soil_moisture
+        name: Fescue Moisture
+        icon: mdi:water-percent
+      - entity: sensor.fescue_grass_soil_moisture_temperature
+        name: Fescue Temperature
+        icon: mdi:thermometer
+      - entity: sensor.fescue_grass_soil_moisture_battery
+        name: Fescue Battery
+        icon: mdi:battery
+      - entity: sensor.green_giant_soil_sensor_soil_moisture
+        name: Green Giant Moisture
+        icon: mdi:water-percent
+      - entity: sensor.green_giant_soil_sensor_temperature
+        name: Green Giant Temperature
+        icon: mdi:thermometer
+      - entity: sensor.green_giant_soil_sensor_battery
+        name: Green Giant Battery
+        icon: mdi:battery
+      - entity: sensor.indoor_tree_soil_moisture_soil_moisture
+        name: Indoor Tree Moisture
+        icon: mdi:water-percent
+      - entity: sensor.indoor_tree_soil_moisture_temperature
+        name: Indoor Tree Temperature
+        icon: mdi:thermometer
+      - entity: sensor.indoor_tree_soil_moisture_battery
+        name: Indoor Tree Battery
+        icon: mdi:battery

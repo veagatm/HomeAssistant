@@ -1,0 +1,3 @@
+#!/bin/sh
+# Block commits whose staged (already filter-cleaned) content still holds private data.
+exec python3 "$(git rev-parse --show-toplevel)/tools/check_leaks.py" --staged

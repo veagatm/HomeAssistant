@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Stack — A Smart Home in Seven Layers</title>
+<meta name="description" content="A seven-layer, OSI-inspired visual walkthrough of a real Home Assistant + Frigate smart home build — every device, service, and architecture decision.">
+<style>
+  :root {
+    --paper: #eef1f4;
+    --paper-raised: #e3e8ec;
+    --ink: #10141a;
+    --ink-raised: #171c24;
+    --text-on-paper: #1a2027;
+    --text-on-paper-dim: #4c5a68;
+    --text-on-ink: #dbe3ea;
+    --text-on-ink-dim: #8b98a6;
+    --copper: #b5652f;
+    --copper-soft: #d98a52;
+    --blueprint: #1f5f9e;
+    --blueprint-soft: #4a8fc9;
+    --line: rgba(26, 32, 39, 0.14);
+    --line-strong: rgba(26, 32, 39, 0.28);
+
+    --bg: var(--paper);
+    --bg-raised: var(--paper-raised);
+    --text: var(--text-on-paper);
+    --text-dim: var(--text-on-paper-dim);
+    --accent: var(--blueprint);
+    --accent-soft: var(--blueprint-soft);
+    --rule: var(--line);
+    --rule-strong: var(--line-strong);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: var(--ink);
+      --bg-raised: var(--ink-raised);
+      --text: var(--text-on-ink);
+      --text-dim: var(--text-on-ink-dim);
+      --accent: var(--blueprint-soft);
+      --accent-soft: var(--blueprint-soft);
+      --rule: rgba(219, 227, 234, 0.14);
+      --rule-strong: rgba(219, 227, 234, 0.28);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: var(--ink);
+    --bg-raised: var(--ink-raised);
+    --text: var(--text-on-ink);
+    --text-dim: var(--text-on-ink-dim);
+    --accent: var(--blueprint-soft);
+    --accent-soft: var(--blueprint-soft);
+    --rule: rgba(219, 227, 234, 0.14);
+    --rule-strong: rgba(219, 227, 234, 0.28);
+  }
+  :root[data-theme="light"] {
+    --bg: var(--paper);
+    --bg-raised: var(--paper-raised);
+    --text: var(--text-on-paper);
+    --text-dim: var(--text-on-paper-dim);
+    --accent: var(--blueprint);
+    --accent-soft: var(--blueprint-soft);
+    --rule: var(--line);
+    --rule-strong: var(--line-strong);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 42px 42px;
+    background-attachment: fixed;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  a { color: var(--accent); }
+
+  /* ── Page shell ─────────────────────────────────────────────────── */
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 4vw, 56px) 120px;
+  }
+
+  /* ── Hero ───────────────────────────────────────────────────────── */
+  .hero {
+    padding: clamp(48px, 9vw, 96px) 0 40px;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .hero .eyebrow {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .hero .eyebrow::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent);
+  }
+  .hero h1 {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: clamp(2.1rem, 5.4vw, 3.6rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.08;
+    max-width: 16ch;
+  }
+  .hero p.lede {
+    margin-top: 22px;
+    max-width: 62ch;
+    font-size: 1.08rem;
+    color: var(--text-dim);
+  }
+  .hero p.lede strong { color: var(--text); font-weight: 600; }
+
+  .stats {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .stat {
+    padding: 16px 18px;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat .n {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 1.6rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+  .stat .l {
+    margin-top: 4px;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ── Layout: rail + stack ───────────────────────────────────────── */
+  .stack-wrap {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 0 40px;
+    margin-top: 56px;
+  }
+  @media (max-width: 860px) {
+    .stack-wrap { grid-template-columns: 1fr; }
+    .rail { display: none; }
+  }
+
+  .rail {
+    position: sticky;
+    top: 28px;
+    align-self: start;
+    padding-top: 6px;
+  }
+  .rail .rail-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 1px solid var(--rule-strong);
+  }
+  .rail li {
+    position: relative;
+    padding: 9px 0 9px 18px;
+  }
+  .rail li::before {
+    content: "";
+    position: absolute;
+    left: -3.5px;
+    top: 15px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rule-strong);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .rail a {
+    display: block;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .rail a .num { color: var(--text-dim); }
+  .rail li.active::before {
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .rail li.active a,
+  .rail li.active a .num { color: var(--accent); }
+
+  /* ── Layer bands ────────────────────────────────────────────────── */
+  .layers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .layer {
+    scroll-margin-top: 24px;
+    border: 1px solid var(--rule-strong);
+    background: var(--bg-raised);
+    padding: clamp(22px, 3.4vw, 34px) clamp(22px, 3.4vw, 34px);
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .layer.is-visible { opacity: 1; transform: none; }
+
+  .layer-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .layer-num {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .layer-osi {
+    font-size: 0.76rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .layer h2 {
+    font-size: 1.5rem;
+    font-weight: 650;
+    flex-basis: 100%;
+    margin-top: 2px;
+  }
+  .layer .dek {
+    color: var(--text-dim);
+    max-width: 68ch;
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+
+  .layer-body {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .layer-body { grid-template-columns: 1fr; }
+  }
+
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+  }
+  .chip {
+    border: 1px solid var(--rule);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .chip .ref {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--copper);
+    letter-spacing: 0.03em;
+  }
+  .chip .name {
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .chip .spec {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .why {
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 16px;
+  }
+  .why .tag {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .why p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+  .why p + p { margin-top: 10px; }
+
+  /* ── Trace section ──────────────────────────────────────────────── */
+  .trace {
+    margin-top: 88px;
+  }
+  .trace-head { max-width: 68ch; }
+  .trace-head .eyebrow {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .trace-head h2 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+  }
+  .trace-head p { color: var(--text-dim); margin-top: 14px; }
+
+  .trace-nodes {
+    margin-top: 40px;
+    position: relative;
+    padding-left: 40px;
+  }
+  .trace-nodes::before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: linear-gradient(var(--copper), var(--accent));
+    opacity: 0.5;
+  }
+  .tnode {
+    position: relative;
+    padding-bottom: 30px;
+  }
+  .tnode:last-child { padding-bottom: 0; }
+  .tnode::before {
+    content: "";
+    position: absolute;
+    left: -40px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+  }
+  .tnode .tlabel {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .tnode h3 { font-size: 1.02rem; font-weight: 650; margin-bottom: 6px; }
+  .tnode p { margin: 0; color: var(--text-dim); font-size: 0.92rem; max-width: 66ch; }
+  .tnode code {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    padding: 1px 5px;
+    font-size: 0.85em;
+    color: var(--text);
+  }
+
+  /* ── Footer ─────────────────────────────────────────────────────── */
+  .foot {
+    margin-top: 88px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule-strong);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+  .foot .mono { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">Home Assistant Green &middot; Mac Mini M1 &middot; a real, live build</div>
+    <h1>The Stack — a smart home read the way you'd read a network diagram</h1>
+    <p class="lede">
+      Seven layers, physical hardware at the bottom and dashboards at the top, loosely
+      after the OSI reference model: each layer only has to know how to talk to the one
+      directly above and below it. <strong>This is the actual inventory and architecture
+      running the house</strong> — every device, service, and design decision below is real,
+      pulled straight from the working config.
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="n mono">19+</div><div class="l">Physical devices</div></div>
+      <div class="stat"><div class="n mono">5</div><div class="l">Docker services</div></div>
+      <div class="stat"><div class="n mono">83</div><div class="l">Automations</div></div>
+      <div class="stat"><div class="n mono">48</div><div class="l">Helpers</div></div>
+      <div class="stat"><div class="n mono">14</div><div class="l">Scripts</div></div>
+      <div class="stat"><div class="n mono">3</div><div class="l">Dashboards</div></div>
+    </div>
+  </header>
+
+  <div class="stack-wrap">
+    <nav class="rail" aria-label="Layer navigation">
+      <div class="rail-title">Jump to layer</div>
+      <ol id="rail-list">
+        <li data-target="layer-7"><a href="#layer-7"><span class="num">L7</span> · Dashboards</a></li>
+        <li data-target="layer-6"><a href="#layer-6"><span class="num">L6</span> · Automation logic</a></li>
+        <li data-target="layer-5"><a href="#layer-5"><span class="num">L5</span> · Vision &amp; intelligence</a></li>
+        <li data-target="layer-4"><a href="#layer-4"><span class="num">L4</span> · Protocol bridges</a></li>
+        <li data-target="layer-3"><a href="#layer-3"><span class="num">L3</span> · Compute hosts</a></li>
+        <li data-target="layer-2"><a href="#layer-2"><span class="num">L2</span> · Local network</a></li>
+        <li data-target="layer-1"><a href="#layer-1"><span class="num">L1</span> · Devices &amp; sensors</a></li>
+      </ol>
+    </nav>
+
+    <div class="layers">
+
+      <!-- L7 -->
+      <section class="layer" id="layer-7">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 7</span>
+          <span class="layer-osi">OSI analogue — Application</span>
+          <h2>Dashboards &amp; notifications</h2>
+        </div>
+        <p class="dek">Where a person actually touches the system — three purpose-built
+          dashboards over the same entities, plus push notifications and voice/display output.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">DASH-01</span><span class="name">Mobile dashboard</span><span class="spec">8 views — home, rooms, presence, laundry, automations, energy, cameras, garden</span></div>
+            <div class="chip"><span class="ref mono">DASH-02</span><span class="name">Kitchen kiosk panel</span><span class="spec">Wall-mounted display, always-on view</span></div>
+            <div class="chip"><span class="ref mono">DASH-03</span><span class="name">Desktop command center</span><span class="spec">3-panel layout — overview, cameras, garden</span></div>
+            <div class="chip"><span class="ref mono">NOTIFY-01</span><span class="name">notify.all_phones</span><span class="spec">Pushes to both residents' phones at once</span></div>
+            <div class="chip"><span class="ref mono">A/V-OUT</span><span class="name">Nest Hub &middot; Google Home &middot; Chromecast</span><span class="spec">Voice and ambient display output</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>Same underlying entities, three different dashboards — a phone in a pocket, a
+              screen bolted to a kitchen wall, and a monitor on a desk are three different
+              jobs, not one responsive layout stretched three ways.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L6 -->
+      <section class="layer" id="layer-6">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 6</span>
+          <span class="layer-osi">OSI analogue — Presentation</span>
+          <h2>Automation logic</h2>
+        </div>
+        <p class="dek">Native Home Assistant YAML — the decision-making layer that turns raw
+          events into light changes, alerts, and routines.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">LOGIC-01</span><span class="name">automations.yaml</span><span class="spec">83 automations — presence, lighting, cameras, irrigation, laundry, code enforcement</span></div>
+            <div class="chip"><span class="ref mono">LOGIC-02</span><span class="name">helpers.yaml</span><span class="spec">48 input_boolean / input_datetime / input_number / counter helpers</span></div>
+            <div class="chip"><span class="ref mono">LOGIC-03</span><span class="name">scripts.yaml</span><span class="spec">14 scripts — snooze system, find-phone, good-night routine</span></div>
+            <div class="chip"><span class="ref mono">LOGIC-04</span><span class="name">packages/</span><span class="spec">2 MQTT sensor-bridge packages (bird tracker, code enforcement)</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>Every automation gets two off-switches: a room-level toggle that silences
+              everything in that room at once, and a per-automation toggle for surgical
+              control — plus a snooze helper that's just a timestamp in the future, checked
+              against <code>now()</code>.</p>
+            <p>None of it needs a YAML edit or a restart to use.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L5 -->
+      <section class="layer" id="layer-5">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 5</span>
+          <span class="layer-osi">OSI analogue — Session</span>
+          <h2>Vision &amp; intelligence</h2>
+        </div>
+        <p class="dek">Docker services on the Mac Mini that turn raw camera frames into
+          structured events — object detection, face recognition, OCR, and species/vehicle
+          classification.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">VIS-01</span><span class="name">Frigate NVR</span><span class="spec">Object detection + built-in face recognition, CPU-only detector</span></div>
+            <div class="chip"><span class="ref mono">VIS-02</span><span class="name">code-enforcement</span><span class="spec">EasyOCR + perceptual-hash vehicle fingerprinting, 2 camera sources</span></div>
+            <div class="chip"><span class="ref mono">VIS-03</span><span class="name">bird-tracker</span><span class="spec">Species classification on the backyard feeder zone</span></div>
+            <div class="chip"><span class="ref mono">VIS-04</span><span class="name">vehicle-dashboard</span><span class="spec">Streamlit review UI for correcting detections, port 8501</span></div>
+            <div class="chip"><span class="ref mono">VIS-05</span><span class="name">reid-service</span><span class="spec">InsightFace/FAISS re-ID — built, currently stopped</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>The original design here was CompreFace + Double Take + that InsightFace/FAISS
+              re-ID service. It worked — then started OOM-killing itself under Colima.</p>
+            <p>Replaced with Frigate's own built-in face recognition: simpler, cheaper to run,
+              does the same job. The re-ID service stays on disk, stopped, in case a
+              street-facing camera ever gets added.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L4 -->
+      <section class="layer" id="layer-4">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 4</span>
+          <span class="layer-osi">OSI analogue — Transport</span>
+          <h2>Protocol bridges</h2>
+        </div>
+        <p class="dek">The translation layer — every device protocol and cloud API gets
+          normalized into HA entities or MQTT topics here.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">BUS-01</span><span class="name">Zigbee2MQTT</span><span class="spec">Via the ZBT-2 — coordinates every Zigbee sensor</span></div>
+            <div class="chip"><span class="ref mono">BUS-02</span><span class="name">Mosquitto MQTT broker</span><span class="spec">Central event bus — frigate/events, code_enforcement/*, birds/*</span></div>
+            <div class="chip"><span class="ref mono">API-01</span><span class="name">Kasa &middot; LocalTuya &middot; Govee Local</span><span class="spec">Local-LAN device integrations (HACS)</span></div>
+            <div class="chip"><span class="ref mono">API-02</span><span class="name">Native Reolink integration</span><span class="spec">Local — floodlight camera + light entities</span></div>
+            <div class="chip"><span class="ref mono">API-03</span><span class="name">August &middot; Leviton ldata-ha &middot; ecobee</span><span class="spec">Cloud integrations — no local API exists</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>Local-first is the default, not a slogan: every device gets its local-API
+              integration if one exists. Cloud only shows up where no local alternative
+              exists at all — the lock and the energy monitor.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L3 -->
+      <section class="layer" id="layer-3">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 3</span>
+          <span class="layer-osi">OSI analogue — Network</span>
+          <h2>Compute hosts</h2>
+        </div>
+        <p class="dek">The two machines doing the actual work — one dedicated appliance,
+          one repurposed general-purpose box.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">HOST-01</span><span class="name">HA Green (HAOS)</span><span class="spec">The automation brain — runs layers 4, 6 and serves layer 7</span></div>
+            <div class="chip"><span class="ref mono">HOST-02</span><span class="name">Mac Mini M1</span><span class="spec">8-core / 16GB — Docker via Colima, runs the vision stack (layer 5)</span></div>
+            <div class="chip"><span class="ref mono">STOR-01</span><span class="name">External ExFAT drive</span><span class="spec">Frigate recordings, clips, snapshots</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>The Mac Mini was already-owned hardware, so the vision stack runs there
+              instead of buying a dedicated NVR appliance or paying for cloud camera storage.</p>
+            <p>Colima's VM defaulted to 4 CPU / 6GB — half the M1's real capacity — which
+              silently capped detection throughput. Resizing to 6 CPU / 10GB took combined
+              detection FPS from 11.8 to 28.6 across three camera feeds.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L2 -->
+      <section class="layer" id="layer-2">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 2</span>
+          <span class="layer-osi">OSI analogue — Data link</span>
+          <h2>Local network</h2>
+        </div>
+        <p class="dek">Wired backbone plus two very different remote-access paths, each
+          solving one specific problem.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">NET-01</span><span class="name">Google Fiber ONT → Fiber Router</span><span class="spec">Internet handoff</span></div>
+            <div class="chip"><span class="ref mono">NET-02</span><span class="name">TP-Link Deco XE75</span><span class="spec">Mesh router, DHCP server</span></div>
+            <div class="chip"><span class="ref mono">NET-03</span><span class="name">Netgear GS308Ev4</span><span class="spec">8-port managed switch</span></div>
+            <div class="chip"><span class="ref mono">NET-04</span><span class="name">TP-Link PoE switch</span><span class="spec">Feeds the 3 Reolink cameras</span></div>
+            <div class="chip"><span class="ref mono">RMT-01</span><span class="name">Tailscale</span><span class="spec">Remote access, zero open ports</span></div>
+            <div class="chip"><span class="ref mono">RMT-02</span><span class="name">Cloudflare Tunnel</span><span class="spec">Reverse proxy to a custom domain</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>Two remote-access paths, two jobs: Tailscale for direct device/CLI access from
+              outside the LAN, a Cloudflare Tunnel just so a push-notification snapshot image
+              can load over cellular — without opening a port or running a VPN client on a
+              phone just to see a photo.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- L1 -->
+      <section class="layer" id="layer-1">
+        <div class="layer-head">
+          <span class="layer-num mono">LAYER 1</span>
+          <span class="layer-osi">OSI analogue — Physical</span>
+          <h2>Devices &amp; sensors</h2>
+        </div>
+        <p class="dek">Where bits meet atoms — every physical device installed in and
+          around the house.</p>
+        <div class="layer-body">
+          <div class="chips">
+            <div class="chip"><span class="ref mono">RF-01</span><span class="name">HA Connect ZBT-2</span><span class="spec">Zigbee + Thread/Matter USB coordinator, 460800 baud</span></div>
+            <div class="chip"><span class="ref mono">LGT-01</span><span class="name">Philips Hue bulbs + Bridge v2</span><span class="spec">Zigbee, local API</span></div>
+            <div class="chip"><span class="ref mono">LGT-02</span><span class="name">Govee WiFi lights</span><span class="spec">Local LAN API</span></div>
+            <div class="chip"><span class="ref mono">LCK-01</span><span class="name">August Smart Lock 3rd Gen Pro</span><span class="spec">Front door, + Connect Hub, cloud-only</span></div>
+            <div class="chip"><span class="ref mono">SNS-01</span><span class="name">Hue &amp; SmartThings motion sensors</span><span class="spec">Zigbee</span></div>
+            <div class="chip"><span class="ref mono">SNS-02</span><span class="name">SmartThings vibration sensors ×2</span><span class="spec">Washer &amp; dryer frames — done-cycle detection</span></div>
+            <div class="chip"><span class="ref mono">SNS-03</span><span class="name">Soil moisture sensors</span><span class="spec">Garden irrigation zones</span></div>
+            <div class="chip"><span class="ref mono">PLG-01</span><span class="name">TP-Link Kasa HS103</span><span class="spec">Local API</span></div>
+            <div class="chip"><span class="ref mono">PLG-02</span><span class="name">BN-Link WiFi plugs</span><span class="spec">Tuya, via LocalTuya</span></div>
+            <div class="chip"><span class="ref mono">CLM-01</span><span class="name">ecobee thermostat</span><span class="spec">Cloud API</span></div>
+            <div class="chip"><span class="ref mono">NRG-01</span><span class="name">Leviton Load Center + LWHEM-2R</span><span class="spec">Whole-home + circuit-level energy monitoring</span></div>
+            <div class="chip"><span class="ref mono">A/V-01</span><span class="name">Google Nest Hub 10&Prime;</span><span class="spec">Matter bridge</span></div>
+            <div class="chip"><span class="ref mono">A/V-02</span><span class="name">Google Home speakers + Chromecasts</span><span class="spec">Cast targets</span></div>
+            <div class="chip"><span class="ref mono">A/V-03</span><span class="name">Roku Ultra</span><span class="spec">ECP API, port 8060</span></div>
+            <div class="chip"><span class="ref mono">CAM-01</span><span class="name">Reolink CX810</span><span class="spec">Front yard — 8MP, F1.0, true-color no-IR</span></div>
+            <div class="chip"><span class="ref mono">CAM-02</span><span class="name">Reolink RLC-1212A</span><span class="spec">Backyard — 12MP, F1.6</span></div>
+            <div class="chip"><span class="ref mono">CAM-03</span><span class="name">Reolink Floodlight</span><span class="spec">Dual-lens, tunable white 3000–6000K — replacing the CX810 as primary front-yard camera</span></div>
+          </div>
+          <div class="why">
+            <span class="tag">// why</span>
+            <p>The ZBT-2's baud rate is set once, in NCP flash, the moment ZHA or the Nabu
+              Casa connect flow first touches the radio. Zigbee2MQTT has to match it exactly
+              or the radio goes silent — so those integrations are never allowed to run again
+              on this stick.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <section class="trace">
+    <div class="trace-head">
+      <div class="eyebrow">Reading it the other direction</div>
+      <h2>The page reads top-down. A real event climbs it bottom-up.</h2>
+      <p>Here's one actual automation, traced through all seven layers — an unrecognized
+        person showing up on the backyard camera.</p>
+    </div>
+
+    <div class="trace-nodes">
+      <div class="tnode">
+        <div class="tlabel">L1 &middot; PHYSICAL</div>
+        <h3>The backyard camera sees a person</h3>
+        <p>The RLC-1212A (12MP) captures motion and a person-shaped object enters its frame.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L2 &middot; NETWORK</div>
+        <h3>The frame reaches the LAN</h3>
+        <p>PoE from the TP-Link switch, uplinked through the Netgear GS308Ev4.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L3 &middot; COMPUTE</div>
+        <h3>Frigate pulls the RTSP stream</h3>
+        <p>Running in Docker on the Mac Mini, under Colima.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L4 &middot; PROTOCOL</div>
+        <h3>The event hits the bus</h3>
+        <p>Frigate publishes to <code>frigate/events</code> on the Mosquitto broker.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L5 &middot; VISION</div>
+        <h3>Detection, then a face check</h3>
+        <p>Object detector tags it <code>person</code>; face recognition finds no match, so
+          <code>sub_label</code> stays empty.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L6 &middot; LOGIC</div>
+        <h3><code>cam_unknown_backyard</code> evaluates</h3>
+        <p>Person, inside <code>backyard_zone</code>, no <code>sub_label</code>,
+          <code>input_boolean.camera_automations_enabled</code> is on, and the back door
+          hasn't just opened — which would mean it's just a resident stepping outside.</p>
+      </div>
+      <div class="tnode">
+        <div class="tlabel">L7 &middot; PRESENTATION</div>
+        <h3>Both phones buzz</h3>
+        <p><code>notify.all_phones</code> fires: "Someone unrecognized was detected in the
+          backyard," with the event snapshot and a deep link into the dashboard.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span class="mono">HomeAssistant/ — local-first, no cloud dependency required to run</span>
+    <span class="mono">Secrets, tokens, and biometric training photos redacted before publishing</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var sections = Array.prototype.slice.call(document.querySelectorAll('.layer'));
+    var railItems = Array.prototype.slice.call(document.querySelectorAll('#rail-list li'));
+    var byId = {};
+    railItems.forEach(function (li) { byId[li.getAttribute('data-target')] = li; });
+
+    var revealObserver = ('IntersectionObserver' in window)
+      ? new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+            }
+          });
+        }, { threshold: 0.08 })
+      : null;
+
+    var railObserver = ('IntersectionObserver' in window)
+      ? new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            var li = byId[entry.target.id];
+            if (!li) return;
+            if (entry.isIntersecting) {
+              railItems.forEach(function (item) { item.classList.remove('active'); });
+              li.classList.add('active');
+            }
+          });
+        }, { rootMargin: '-40% 0px -50% 0px' })
+      : null;
+
+    sections.forEach(function (sec) {
+      if (revealObserver) revealObserver.observe(sec);
+      if (railObserver) railObserver.observe(sec);
+      if (!revealObserver) sec.classList.add('is-visible');
+    });
+  })();
+</script>
+
+</body>
+</html>

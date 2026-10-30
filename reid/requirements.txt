@@ -1,0 +1,7 @@
+opencv-python-headless==4.10.0.84
+insightface==0.7.3
+faiss-cpu==1.8.0
+easyocr==1.7.2
+paho-mqtt==2.1.0
+numpy==1.26.4
+onnxruntime==1.19.2

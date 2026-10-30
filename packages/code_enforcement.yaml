@@ -1,0 +1,50 @@
+# Code Enforcement Detector — MQTT sensors + HA automation
+# Deployed to /config/packages/code_enforcement.yaml
+# Depends on code-enforcement Docker service on Mac Mini
+
+mqtt:
+  sensor:
+    - name: "Code Enforcement Last Seen"
+      unique_id: code_enforcement_last_seen
+      state_topic: "code_enforcement/last_seen"
+      device_class: timestamp
+      icon: mdi:car-search
+
+    - name: "Code Enforcement Today"
+      unique_id: code_enforcement_today_count
+      state_topic: "code_enforcement/today_count"
+      unit_of_measurement: "detections"
+      icon: mdi:counter
+
+    - name: "Code Enforcement Total"
+      unique_id: code_enforcement_total_count
+      state_topic: "code_enforcement/total_count"
+      unit_of_measurement: "detections"
+      icon: mdi:counter
+
+automation:
+  - id: code_enforcement_vehicle_alert
+    alias: "Code Enforcement — Vehicle Spotted on Road"
+    description: "Push alert with snapshot when OCR detects code enforcement text on a road_zone car"
+    mode: single
+    trigger:
+      - platform: mqtt
+        topic: "code_enforcement/alert"
+    action:
+      - variables:
+          payload: "{{ trigger.payload_json }}"
+      - service: notify.all_phones
+        data:
+          title: "Code Enforcement Vehicle"
+          message: >
+            Spotted on the road — matched "{{ payload.matched_text }}".
+            {{ payload.today_count }}x today · {{ payload.total_count }}x all-time.
+          data:
+            image: "{{ payload.snapshot_url }}"
+            ttl: 0
+            priority: high
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.code_enforcement_last_seen
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"

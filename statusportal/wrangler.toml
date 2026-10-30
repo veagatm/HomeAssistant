@@ -1,0 +1,15 @@
+name = "house-status"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+routes = [
+  { pattern = "status.example.net/*", zone_name = "example.net" }
+]
+
+[[kv_namespaces]]
+binding = "HSP_KV"
+id = "c6e74bebb77f439e9205d75eb6790741"
+
+[vars]
+# Secrets are set via: wrangler secret put DASHBOARD_PASSWORD
+# Secrets are set via: wrangler secret put API_KEY

@@ -1,0 +1,41 @@
+# Main Lovelace Dashboard Entry Point
+#
+# DEPLOY:
+#   # 1. Enable YAML mode — add to /config/configuration.yaml once:
+#   #      lovelace:
+#   #        mode: yaml
+#   #        resources: !include lovelace/resources.yaml
+#   #
+#   # 2. Copy files:
+#   ssh root@192.168.68.3 -p 22222 -i ~/.ssh/ha_green "mkdir -p /config/lovelace/views"
+#   scp -P 22222 -i ~/.ssh/ha_green HomeAssistant/lovelace/resources.yaml \
+#       root@192.168.68.3:/config/lovelace/resources.yaml
+#   scp -P 22222 -i ~/.ssh/ha_green HomeAssistant/lovelace/views/*.yaml \
+#       root@192.168.68.3:/config/lovelace/views/
+#   scp -P 22222 -i ~/.ssh/ha_green HomeAssistant/lovelace/ui-lovelace.yaml \
+#       root@192.168.68.3:/config/ui-lovelace.yaml
+#   #
+#   # 3. Reload dashboard (no restart needed):
+#   #    HA sidebar → Developer Tools → YAML tab → "Reload Lovelace"
+#   #    OR: c → top-right menu → Reload Dashboard
+#   #
+#   # NOTE: Requires HACS + Mushroom Cards + Bubble Card installed first.
+#   # See lovelace/resources.yaml for full frontend dependency list.
+
+title: Home
+
+resources:
+  - url: /hacsfiles/lovelace-mushroom/mushroom.js
+    type: module
+  - url: /hacsfiles/Bubble-Card/bubble-card.js
+    type: module
+
+views:
+  - !include lovelace/views/01_home.yaml
+  - !include lovelace/views/02_rooms.yaml
+  - !include lovelace/views/03_presence.yaml
+  - !include lovelace/views/04_laundry.yaml
+  - !include lovelace/views/05_automations.yaml
+  - !include lovelace/views/06_energy.yaml
+  - !include lovelace/views/07_cameras.yaml
+  - !include lovelace/views/08_garden.yaml

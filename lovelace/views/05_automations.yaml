@@ -1,0 +1,644 @@
+title: Automations
+path: automations
+icon: mdi:robot
+
+cards:
+
+  # ── Active Snoozes (conditional — only shown when something is snoozed) ────────
+  - type: conditional
+    conditions:
+      - condition: template
+        value_template: >
+          {% set ns = namespace(any=false) %}
+          {% set ids = ['lr_motion','bed_motion','kit_motion','hall_motion',
+                        'washer_alert','dryer_alert','internet_outage',
+                        'away_mode','arriving_home','sleep_mode','wake_mode',
+                        'trash_reminder','memory_lights_lr','memory_lights_bed',
+                        'memory_lights_kit'] %}
+          {% for id in ids %}
+            {% if state_attr('input_datetime.snooze_' ~ id, 'timestamp') | float(0) > now().timestamp() %}
+              {% set ns.any = true %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.any }}
+    card:
+      type: vertical-stack
+      cards:
+        - type: custom:mushroom-template-card
+          primary: Active Snoozes
+          secondary: >
+            {% set ns = namespace(items=[]) %}
+            {% set snoozes = [
+              ('lr_motion', 'LR Motion'),
+              ('bed_motion', 'Bed Motion'),
+              ('kit_motion', 'Kitchen'),
+              ('hall_motion', 'Hallway'),
+              ('washer_alert', 'Washer'),
+              ('dryer_alert', 'Dryer'),
+              ('internet_outage', 'Internet'),
+              ('away_mode', 'Away Mode'),
+              ('arriving_home', 'Arriving'),
+              ('sleep_mode', 'Sleep'),
+              ('wake_mode', 'Wake'),
+              ('trash_reminder', 'Trash'),
+              ('memory_lights_lr', 'Mem LR'),
+              ('memory_lights_bed', 'Mem Bed'),
+              ('memory_lights_kit', 'Mem Kit')
+            ] %}
+            {% for id, label in snoozes %}
+              {% set ts = state_attr('input_datetime.snooze_' ~ id, 'timestamp') | float(0) %}
+              {% if ts > now().timestamp() %}
+                {% set ns.items = ns.items + [label ~ ' until ' ~ (ts | timestamp_custom('%-I:%M %p'))] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.items | join(' · ') }}
+          icon: mdi:alarm-snooze
+          icon_color: orange
+          tap_action:
+            action: none
+        - type: custom:mushroom-template-card
+          primary: Clear All Snoozes
+          icon: mdi:alarm-multiple-off
+          icon_color: red
+          tap_action:
+            action: call-service
+            service: script.clear_all_snoozes
+
+  # ── Room Master Switches ───────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Room Switches
+    subtitle: Off = all automations in that room disabled
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automations_living_room
+        name: Living Room
+        icon: mdi:sofa
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automations_living_room', 'on') else 'red' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automations_bedroom
+        name: Bedroom
+        icon: mdi:bed
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automations_bedroom', 'on') else 'red' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.automations_kitchen
+        name: Kitchen
+        icon: mdi:chef-hat
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.automations_kitchen', 'on') else 'red' }}
+
+  # ── State Flags ────────────────────────────────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: State Flags
+    subtitle: Tap to toggle
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.sleep_mode_active
+        name: Sleep
+        icon: mdi:sleep
+        icon_color: >
+          {{ 'indigo' if is_state('input_boolean.sleep_mode_active', 'on') else 'grey' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.away_mode_active
+        name: Away
+        icon: mdi:home-export-outline
+        icon_color: >
+          {{ 'orange' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+      - type: custom:mushroom-entity-card
+        entity: input_boolean.trash_night
+        name: Trash Night
+        icon: mdi:trash-can
+        icon_color: >
+          {{ 'green' if is_state('input_boolean.trash_night', 'on') else 'grey' }}
+
+  # ── Snooze Controls (tap to open popup) ───────────────────────────────────────
+  - type: custom:mushroom-title-card
+    title: Snooze Controls
+    subtitle: Tap a category to snooze or clear
+
+  - type: custom:mushroom-template-card
+    primary: Lighting
+    secondary: Motion lights & memory scenes
+    icon: mdi:lightbulb-auto
+    icon_color: amber
+    tap_action:
+      action: navigate
+      navigation_path: "#snooze_lighting"
+
+  - type: custom:mushroom-template-card
+    primary: Routines
+    secondary: Sleep, wake, away, arriving
+    icon: mdi:clock-time-four
+    icon_color: cyan
+    tap_action:
+      action: navigate
+      navigation_path: "#snooze_routines"
+
+  - type: custom:mushroom-template-card
+    primary: System
+    secondary: Washer, dryer, trash, internet
+    icon: mdi:cog
+    icon_color: purple
+    tap_action:
+      action: navigate
+      navigation_path: "#snooze_system"
+
+  # ── Snooze Popups (vertical-stack: popup header first, content as siblings) ────
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#snooze_lighting"
+        name: Lighting Snoozes
+        icon: mdi:lightbulb-auto
+      - type: custom:mushroom-title-card
+        subtitle: LR motion lights
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 30 min
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_lr_motion', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:alarm-snooze
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_lr_motion', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: lr_motion, duration_minutes: 30 }
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            icon: mdi:alarm-snooze
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: lr_motion, duration_minutes: 120 }
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Until 7am
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.snooze_until_morning
+              service_data: { snooze_id: lr_motion }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: lr_motion }
+      - type: custom:mushroom-title-card
+        subtitle: Bed motion lights
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 30 min
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_bed_motion', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:alarm-snooze
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_bed_motion', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: bed_motion, duration_minutes: 30 }
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            icon: mdi:alarm-snooze
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: bed_motion, duration_minutes: 120 }
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Until 7am
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.snooze_until_morning
+              service_data: { snooze_id: bed_motion }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: bed_motion }
+      - type: custom:mushroom-title-card
+        subtitle: Hallway motion lights
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 30 min
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_hall_motion', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:alarm-snooze
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_hall_motion', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: hall_motion, duration_minutes: 30 }
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            icon: mdi:alarm-snooze
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: hall_motion, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: hall_motion }
+      - type: custom:mushroom-title-card
+        subtitle: Kitchen motion lights
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 30 min
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_kit_motion', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:alarm-snooze
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_kit_motion', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: kit_motion, duration_minutes: 30 }
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            icon: mdi:alarm-snooze
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: kit_motion, duration_minutes: 120 }
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Until 7am
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.snooze_until_morning
+              service_data: { snooze_id: kit_motion }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: kit_motion }
+      - type: custom:mushroom-title-card
+        subtitle: Memory lights (scene restore)
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: LR 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_memory_lights_lr', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:lightbulb-auto
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_memory_lights_lr', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: memory_lights_lr, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Clear LR
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: memory_lights_lr }
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Bed 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_memory_lights_bed', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:lightbulb-auto
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_memory_lights_bed', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: memory_lights_bed, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Clear Bed
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: memory_lights_bed }
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: Kit 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_memory_lights_kit', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:lightbulb-auto
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_memory_lights_kit', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: memory_lights_kit, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Clear Kit
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: memory_lights_kit }
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#snooze_routines"
+        name: Routine Snoozes
+        icon: mdi:clock-time-four
+      - type: custom:mushroom-title-card
+        subtitle: Sleep mode (bed vibration)
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 1 hr
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_sleep_mode', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:sleep
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_sleep_mode', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: sleep_mode, duration_minutes: 60 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: sleep_mode }
+      - type: custom:mushroom-title-card
+        subtitle: Wake routine (bed vibration)
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 1 hr
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_wake_mode', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:weather-sunny
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_wake_mode', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: wake_mode, duration_minutes: 60 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: wake_mode }
+      - type: custom:mushroom-title-card
+        subtitle: Away mode detection
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 4 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_away_mode', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:home-export-outline
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_away_mode', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: away_mode, duration_minutes: 240 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: away_mode }
+      - type: custom:mushroom-title-card
+        subtitle: Arriving home
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 4 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_arriving_home', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:home-import-outline
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_arriving_home', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: arriving_home, duration_minutes: 240 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: arriving_home }
+
+  - type: vertical-stack
+    cards:
+      - type: custom:bubble-card
+        card_type: pop-up
+        hash: "#snooze_system"
+        name: System Snoozes
+        icon: mdi:cog
+      - type: custom:mushroom-title-card
+        subtitle: Washer alert
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_washer_alert', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:washing-machine
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_washer_alert', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: washer_alert, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Until 7am
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.snooze_until_morning
+              service_data: { snooze_id: washer_alert }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: washer_alert }
+      - type: custom:mushroom-title-card
+        subtitle: Dryer alert
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_dryer_alert', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:tumble-dryer
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_dryer_alert', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: dryer_alert, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Until 7am
+            icon: mdi:weather-night
+            tap_action:
+              action: call-service
+              service: script.snooze_until_morning
+              service_data: { snooze_id: dryer_alert }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: dryer_alert }
+      - type: custom:mushroom-title-card
+        subtitle: Trash reminder
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 2 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_trash_reminder', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:trash-can
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_trash_reminder', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: trash_reminder, duration_minutes: 120 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: trash_reminder }
+      - type: custom:mushroom-title-card
+        subtitle: Internet outage warning
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: 4 hrs
+            secondary: >
+              {% set ts = state_attr('input_datetime.snooze_internet_outage', 'timestamp') | float(0) %}
+              {{ 'until ' ~ (ts | timestamp_custom('%-I:%M %p')) if ts > now().timestamp() else 'active' }}
+            icon: mdi:web-off
+            icon_color: >
+              {{ 'orange' if state_attr('input_datetime.snooze_internet_outage', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+            tap_action:
+              action: call-service
+              service: script.snooze_automation
+              service_data: { snooze_id: internet_outage, duration_minutes: 240 }
+          - type: custom:mushroom-template-card
+            primary: Clear
+            icon: mdi:alarm-off
+            icon_color: red
+            tap_action:
+              action: call-service
+              service: script.clear_snooze
+              service_data: { snooze_id: internet_outage }
+
+  # ── Individual Automation Toggles (scroll down for surgical on/off) ────────────
+  - type: custom:mushroom-title-card
+    title: Automation Toggles
+    subtitle: Off = permanently disabled (no snooze needed)
+
+  - type: entities
+    entities:
+      - entity: input_boolean.automation_washer_alert
+        name: Washer Done Alert
+        icon: mdi:washing-machine
+      - entity: input_boolean.automation_dryer_alert
+        name: Dryer Done Alert
+        icon: mdi:tumble-dryer
+      - entity: input_boolean.automation_internet_outage
+        name: Internet Outage Warning
+        icon: mdi:web-off
+      - entity: input_boolean.automation_away_mode
+        name: Away Mode (both phones)
+        icon: mdi:home-export-outline
+      - entity: input_boolean.automation_arriving_home
+        name: Arriving Home
+        icon: mdi:home-import-outline
+      - entity: input_boolean.automation_sleep_mode
+        name: Sleep Mode (bed vibration)
+        icon: mdi:sleep
+      - entity: input_boolean.automation_wake_mode
+        name: Wake Routine (bed vibration)
+        icon: mdi:weather-sunny
+      - entity: input_boolean.automation_trash_reminder
+        name: Trash Reminder
+        icon: mdi:trash-can
+      - entity: input_boolean.automation_memory_lights_lr
+        name: Memory Lights — Living Room
+        icon: mdi:lightbulb-auto
+      - entity: input_boolean.automation_memory_lights_bed
+        name: Memory Lights — Bedroom
+        icon: mdi:lightbulb-auto
+      - entity: input_boolean.automation_memory_lights_kit
+        name: Memory Lights — Kitchen
+        icon: mdi:lightbulb-auto
+      - entity: input_boolean.automation_hall_motion
+        name: Hallway Motion Lights
+        icon: mdi:motion-sensor

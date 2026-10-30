@@ -1,0 +1,3 @@
+# Every text file passes through tools/redact.py on its way into git, swapping
+# personal identifiers for pseudonyms. See README "Publishing safely".
+* filter=redact

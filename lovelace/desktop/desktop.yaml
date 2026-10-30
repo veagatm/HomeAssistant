@@ -1,0 +1,1107 @@
+title: Desktop
+views:
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VIEW 1 — OVERVIEW
+  # Presence · Climate · Lighting · Energy · Automations
+  # ═══════════════════════════════════════════════════════════════════
+  - title: Overview
+    path: overview
+    icon: mdi:home
+    panel: true
+    cards:
+      - type: vertical-stack
+        cards:
+
+          # ── Status bar ────────────────────────────────────────────
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.riley_hollis', 'home') else 'red' }}
+                content: >
+                  Riley · {{ states('person.riley_hollis') | title }}
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.cassandra_quinlan', 'home') else 'red' }}
+                content: >
+                  Casey · {{ states('person.cassandra_quinlan') | title }}
+              - type: template
+                icon: mdi:home-export-outline
+                icon_color: >
+                  {{ 'orange' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+                content: >
+                  {{ 'Away' if is_state('input_boolean.away_mode_active', 'on') else 'Home' }}
+              - type: template
+                icon: mdi:sleep
+                icon_color: >
+                  {{ 'indigo' if is_state('input_boolean.sleep_mode_active', 'on') else 'grey' }}
+                content: >
+                  {{ 'Sleep' if is_state('input_boolean.sleep_mode_active', 'on') else 'Awake' }}
+              - type: template
+                icon: mdi:flash
+                icon_color: >
+                  {{ 'red' if states('sensor.breaker_panel_watts') | int > 3000 else 'amber' }}
+                content: >
+                  {{ states('sensor.breaker_panel_watts') | int }} W
+              - type: template
+                icon: mdi:web
+                icon_color: >
+                  {{ 'teal' if is_state('binary_sensor.ping_google', 'on') else 'red' }}
+                content: >
+                  {{ 'Online' if is_state('binary_sensor.ping_google', 'on') else 'Offline' }}
+              - type: template
+                icon: mdi:clock-outline
+                icon_color: blue
+                content: >
+                  {{ now().strftime('%-I:%M %p') }}  ·  {{ now().strftime('%a %b %-d') }}
+
+          # ── 3-Column Layout ───────────────────────────────────────
+          - type: horizontal-stack
+            cards:
+
+              # ── LEFT: Presence + Laundry + Quick Actions ──────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    title: Presence
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-person-card
+                        entity: person.riley_hollis
+                        name: Riley
+                        secondary_info: last-changed
+                        use_entity_picture: false
+                        icon: mdi:account
+                      - type: custom:mushroom-person-card
+                        entity: person.cassandra_quinlan
+                        name: Casey
+                        secondary_info: last-changed
+                        use_entity_picture: false
+                        icon: mdi:account
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.away_mode_active
+                        name: Away
+                        icon: mdi:home-export-outline
+                        icon_color: >
+                          {{ 'orange' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.sleep_mode_active
+                        name: Sleep
+                        icon: mdi:sleep
+                        icon_color: >
+                          {{ 'indigo' if is_state('input_boolean.sleep_mode_active', 'on') else 'grey' }}
+
+                  - type: custom:mushroom-title-card
+                    title: Laundry
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Washer
+                        secondary: >
+                          {% if is_state('binary_sensor.vibration_sensor_1_vibration', 'on') %}
+                            Running
+                          {% else %}
+                            {% set s = states('input_datetime.washer_started_at') %}
+                            {{ 'done · ' ~ (as_datetime(s) | as_local | as_timestamp | timestamp_custom('%-I:%M %p')) if s not in ('unknown','unavailable') else 'idle' }}
+                          {% endif %}
+                        icon: mdi:washing-machine
+                        icon_color: >
+                          {{ 'blue' if is_state('binary_sensor.vibration_sensor_1_vibration', 'on') else 'grey' }}
+                      - type: custom:mushroom-template-card
+                        primary: Dryer
+                        secondary: >
+                          {% if is_state('binary_sensor.vibration_sensor_2_vibration', 'on') %}
+                            Running
+                          {% else %}
+                            {% set s = states('input_datetime.dryer_started_at') %}
+                            {{ 'done · ' ~ (as_datetime(s) | as_local | as_timestamp | timestamp_custom('%-I:%M %p')) if s not in ('unknown','unavailable') else 'idle' }}
+                          {% endif %}
+                        icon: mdi:tumble-dryer
+                        icon_color: >
+                          {{ 'orange' if is_state('binary_sensor.vibration_sensor_2_vibration', 'on') else 'grey' }}
+
+                  - type: custom:mushroom-title-card
+                    title: Quick Actions
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Good Night
+                        secondary: All lights off
+                        icon: mdi:weather-night
+                        icon_color: indigo
+                        tap_action:
+                          action: call-service
+                          service: script.good_night_all
+                      - type: custom:mushroom-template-card
+                        primary: Trash Night
+                        secondary: >
+                          {{ 'Set ✓' if is_state('input_boolean.trash_night', 'on') else 'Not set' }}
+                        icon: mdi:trash-can
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.trash_night', 'on') else 'grey' }}
+                        tap_action:
+                          action: call-service
+                          service: script.set_trash_night
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Find Riley
+                        secondary: Pixel 8
+                        icon: mdi:cellphone-sound
+                        icon_color: cyan
+                        tap_action:
+                          action: call-service
+                          service: script.find_riley_phone
+                      - type: custom:mushroom-template-card
+                        primary: Find Casey
+                        secondary: Samsung
+                        icon: mdi:cellphone-sound
+                        icon_color: purple
+                        tap_action:
+                          action: call-service
+                          service: script.find_casey_phone
+
+                  - type: conditional
+                    conditions:
+                      - condition: template
+                        value_template: >
+                          {% set ns = namespace(any=false) %}
+                          {% set ids = ['lr_motion','bed_motion','kit_motion','hall_motion',
+                            'washer_alert','dryer_alert','internet_outage','away_mode',
+                            'arriving_home','sleep_mode','wake_mode','trash_reminder',
+                            'memory_lights_lr','memory_lights_bed','memory_lights_kit'] %}
+                          {% for id in ids %}
+                            {% if state_attr('input_datetime.snooze_' ~ id, 'timestamp') | float(0) > now().timestamp() %}
+                              {% set ns.any = true %}
+                            {% endif %}
+                          {% endfor %}
+                          {{ ns.any }}
+                    card:
+                      type: vertical-stack
+                      cards:
+                        - type: custom:mushroom-title-card
+                          title: Active Snoozes
+                        - type: custom:mushroom-template-card
+                          secondary: >
+                            {% set ns = namespace(items=[]) %}
+                            {% set snoozes = [
+                              ('lr_motion','LR Motion'),('bed_motion','Bed Motion'),
+                              ('kit_motion','Kitchen'),('hall_motion','Hallway'),
+                              ('washer_alert','Washer'),('dryer_alert','Dryer'),
+                              ('internet_outage','Internet'),('away_mode','Away'),
+                              ('arriving_home','Arriving'),('sleep_mode','Sleep'),
+                              ('wake_mode','Wake'),('trash_reminder','Trash'),
+                              ('memory_lights_lr','Mem LR'),('memory_lights_bed','Mem Bed'),
+                              ('memory_lights_kit','Mem Kit')
+                            ] %}
+                            {% for id, label in snoozes %}
+                              {% set ts = state_attr('input_datetime.snooze_' ~ id, 'timestamp') | float(0) %}
+                              {% if ts > now().timestamp() %}
+                                {% set ns.items = ns.items + [label ~ ' until ' ~ (ts | timestamp_custom('%-I:%M %p'))] %}
+                              {% endif %}
+                            {% endfor %}
+                            {{ ns.items | join(' · ') }}
+                          icon: mdi:alarm-snooze
+                          icon_color: orange
+                        - type: custom:mushroom-template-card
+                          primary: Clear All Snoozes
+                          icon: mdi:alarm-multiple-off
+                          icon_color: red
+                          tap_action:
+                            action: call-service
+                            service: script.clear_all_snoozes
+
+              # ── CENTER: Climate + Lighting + Rooms ────────────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    title: Climate
+
+                  - type: thermostat
+                    entity: climate.ecobee
+                    name: Thermostat
+
+                  - type: custom:mushroom-title-card
+                    title: Lighting Mode
+
+                  - type: custom:mushroom-select-card
+                    entity: input_select.house_lighting_mode
+                    name: All Rooms
+                    icon: mdi:home-lightbulb
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-select-card
+                        entity: input_select.lighting_mode_living_room
+                        name: Living Room
+                        icon: mdi:sofa
+                      - type: custom:mushroom-select-card
+                        entity: input_select.lighting_mode_bedroom
+                        name: Bedroom
+                        icon: mdi:bed
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-select-card
+                        entity: input_select.lighting_mode_kitchen
+                        name: Kitchen
+                        icon: mdi:chef-hat
+
+                  - type: custom:mushroom-title-card
+                    title: Room Lights
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-light-card
+                        entity: light.living_room
+                        name: Living Room
+                        show_brightness_control: true
+                        show_color_temp_control: true
+                        collapsible_controls: true
+                      - type: custom:mushroom-light-card
+                        entity: light.kitchen
+                        name: Kitchen
+                        show_brightness_control: true
+                        show_color_temp_control: true
+                        collapsible_controls: true
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-light-card
+                        entity: light.bedroom
+                        name: Bedroom
+                        show_brightness_control: true
+                        show_color_temp_control: true
+                        collapsible_controls: true
+                      - type: custom:mushroom-light-card
+                        entity: light.office
+                        name: Office
+                        show_brightness_control: true
+                        show_color_temp_control: true
+                        collapsible_controls: true
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-light-card
+                        entity: light.hallway
+                        name: Hallway
+                        show_brightness_control: true
+                        collapsible_controls: true
+                      - type: custom:mushroom-light-card
+                        entity: light.porch
+                        name: Porch
+                        show_brightness_control: true
+                        collapsible_controls: true
+
+                  - type: custom:mushroom-title-card
+                    title: Backyard / Outdoor
+
+                  - type: custom:mushroom-light-card
+                    entity: light.h702b
+                    name: Outdoor Color Lights
+                    show_brightness_control: true
+                    show_color_temp_control: true
+                    collapsible_controls: true
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_gang_switch_l1
+                        name: String Lights
+                        icon: mdi:string-lights
+                        tap_action:
+                          action: toggle
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_gang_switch_l3
+                        name: Flood Light
+                        icon: mdi:outdoor-lamp
+                        tap_action:
+                          action: toggle
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_gang_switch_l4
+                        name: Shed Lights
+                        icon: mdi:barn
+                        tap_action:
+                          action: toggle
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_plug
+                        name: Carport Flood Light
+                        icon: mdi:spotlight-beam
+                        tap_action:
+                          action: toggle
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_gang_switch_l2
+                        name: Fan / Bike Charger
+                        icon: mdi:fan
+                        tap_action:
+                          action: toggle
+                      - type: custom:mushroom-entity-card
+                        entity: switch.outdoor_gang_switch_l5
+                        name: Backyard USB (L5)
+                        icon: mdi:usb-port
+                        tap_action:
+                          action: toggle
+
+                  - type: custom:mushroom-title-card
+                    title: Media
+
+                  - type: custom:mushroom-media-player-card
+                    entity: media_player.roku_ultra
+                    name: Roku
+                    use_media_info: true
+                    collapsible_controls: true
+
+                  - type: custom:mushroom-media-player-card
+                    entity: media_player.bedroom_tv_2
+                    name: Bedroom TV
+                    use_media_info: true
+                    collapsible_controls: true
+
+              # ── RIGHT: Energy + Automations ───────────────────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    title: Energy
+
+                  - type: custom:mushroom-template-card
+                    primary: >
+                      {{ states('sensor.breaker_panel_watts') | int }} W  ·  Today: {{ states('sensor.breaker_panel_daily_import') }} kWh
+                    icon: mdi:flash
+                    icon_color: >
+                      {{ 'red' if states('sensor.breaker_panel_watts') | int > 3000 else 'amber' if states('sensor.breaker_panel_watts') | int > 1500 else 'green' }}
+
+                  - type: history-graph
+                    hours_to_show: 8
+                    entities:
+                      - entity: sensor.breaker_panel_watts
+                        name: Total (W)
+
+                  - type: entities
+                    title: Live Circuit Loads
+                    entities:
+                      - entity: sensor.office_and_misc_watts
+                        name: Office & Misc
+                        icon: mdi:monitor
+                      - entity: sensor.furnace_watts
+                        name: Furnace
+                        icon: mdi:heat-wave
+                      - entity: sensor.dryer_watts
+                        name: Dryer
+                        icon: mdi:tumble-dryer
+                      - entity: sensor.range_watts
+                        name: Range
+                        icon: mdi:stove
+                      - entity: sensor.breaker_panel_daily_import
+                        name: "— Panel Total"
+                        icon: mdi:transmission-tower
+
+                  - type: custom:mushroom-title-card
+                    title: Network Speed
+
+                  - type: entities
+                    entities:
+                      - entity: sensor.mac_mini_speed_test_download_speed
+                        name: Download
+                        icon: mdi:download-network
+                      - entity: sensor.mac_mini_speed_test_upload_speed
+                        name: Upload
+                        icon: mdi:upload-network
+                      - entity: sensor.mac_mini_speed_test_speedtest_ping
+                        name: Ping
+                        icon: mdi:swap-horizontal
+
+                  - type: history-graph
+                    hours_to_show: 48
+                    entities:
+                      - entity: sensor.mac_mini_speed_test_download_speed
+                        name: Download (Mbps)
+                      - entity: sensor.mac_mini_speed_test_upload_speed
+                        name: Upload (Mbps)
+
+                  - type: custom:mushroom-title-card
+                    title: Room Automation Switches
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automations_living_room
+                        name: Living Room
+                        icon: mdi:sofa
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automations_living_room', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automations_bedroom
+                        name: Bedroom
+                        icon: mdi:bed
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automations_bedroom', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automations_kitchen
+                        name: Kitchen
+                        icon: mdi:chef-hat
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automations_kitchen', 'on') else 'red' }}
+
+                  - type: custom:mushroom-title-card
+                    title: Automation Toggles
+
+                  - type: entities
+                    entities:
+                      - entity: input_boolean.automation_away_mode
+                        name: Away Mode
+                        icon: mdi:home-export-outline
+                      - entity: input_boolean.automation_arriving_home
+                        name: Arriving Home
+                        icon: mdi:home-import-outline
+                      - entity: input_boolean.automation_sleep_mode
+                        name: Sleep Mode
+                        icon: mdi:sleep
+                      - entity: input_boolean.automation_wake_mode
+                        name: Wake Routine
+                        icon: mdi:weather-sunny
+                      - entity: input_boolean.automation_washer_alert
+                        name: Washer Alert
+                        icon: mdi:washing-machine
+                      - entity: input_boolean.automation_dryer_alert
+                        name: Dryer Alert
+                        icon: mdi:tumble-dryer
+                      - entity: input_boolean.automation_trash_reminder
+                        name: Trash Reminder
+                        icon: mdi:trash-can
+                      - entity: input_boolean.automation_internet_outage
+                        name: Internet Outage
+                        icon: mdi:web-off
+                      - entity: input_boolean.automation_hall_motion
+                        name: Hallway Motion
+                        icon: mdi:motion-sensor
+                      - entity: input_boolean.automation_memory_lights_lr
+                        name: Memory Lights LR
+                        icon: mdi:lightbulb-auto
+                      - entity: input_boolean.automation_memory_lights_bed
+                        name: Memory Lights Bed
+                        icon: mdi:lightbulb-auto
+                      - entity: input_boolean.automation_memory_lights_kit
+                        name: Memory Lights Kit
+                        icon: mdi:lightbulb-auto
+
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VIEW 2 — CAMERAS
+  # 3-wide camera grid · Motion · Alerts · Snooze
+  # ═══════════════════════════════════════════════════════════════════
+  - title: Cameras
+    path: cameras
+    icon: mdi:cctv
+    panel: true
+    cards:
+      - type: vertical-stack
+        cards:
+
+          # ── Status bar ────────────────────────────────────────────
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.riley_hollis', 'home') else 'red' }}
+                content: >
+                  Riley · {{ states('person.riley_hollis') | title }}
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.cassandra_quinlan', 'home') else 'red' }}
+                content: >
+                  Casey · {{ states('person.cassandra_quinlan') | title }}
+              - type: template
+                icon: mdi:home-export-outline
+                icon_color: >
+                  {{ 'orange' if is_state('input_boolean.away_mode_active', 'on') else 'green' }}
+                content: >
+                  {{ 'Away' if is_state('input_boolean.away_mode_active', 'on') else 'Home' }}
+              - type: template
+                icon: mdi:clock-outline
+                icon_color: blue
+                content: >
+                  {{ now().strftime('%-I:%M %p') }}  ·  {{ now().strftime('%a %b %-d') }}
+
+          # ── Camera grid: Outdoor row ──────────────────────────────
+          - type: horizontal-stack
+            cards:
+              - type: picture-entity
+                entity: camera.driveway
+                name: Driveway
+                show_state: false
+              - type: picture-entity
+                entity: camera.rear_driveway
+                name: Rear Driveway
+                show_state: false
+              - type: picture-entity
+                entity: camera.backyard
+                name: Backyard
+                show_state: false
+
+          # ── Camera grid: Indoor + Doorbell row ────────────────────
+          - type: horizontal-stack
+            cards:
+              - type: picture-entity
+                entity: camera.doorbell
+                name: Doorbell
+                show_state: false
+              - type: picture-entity
+                entity: camera.g8v1_gh02_2503_3rh3
+                name: Living Room
+                show_state: false
+              - type: picture-entity
+                entity: camera.tilt_camera
+                name: Tilt Camera
+                show_state: false
+
+          # ── Camera grid: Frigate/Reolink (added 2026-07-08 — previously only
+          # the floodlight was here; front_yard_fluent/backyard_fluent existed
+          # on the mobile and kitchen panel dashboards but not this one) ──────
+          - type: horizontal-stack
+            cards:
+              - type: picture-entity
+                entity: camera.front_yard_fluent
+                name: Front Yard
+                show_state: false
+              - type: picture-entity
+                entity: camera.backyard_fluent
+                name: Backyard
+                show_state: false
+
+          - type: picture-entity
+            entity: camera.front_yard_floodlight_fluent
+            name: Front Yard Floodlight
+            show_state: false
+
+          # ── Controls: Motion · Alerts · Snooze ───────────────────
+          - type: horizontal-stack
+            cards:
+
+              # Motion status
+              - type: vertical-stack
+                cards:
+                  - type: custom:mushroom-title-card
+                    title: Motion Status
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.driveway_motion
+                        name: Driveway
+                        icon: mdi:motion-sensor
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.driveway_motion', 'on') else 'grey' }}
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.rear_driveway_motion
+                        name: Rear Drive
+                        icon: mdi:motion-sensor
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.rear_driveway_motion', 'on') else 'grey' }}
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.backyard_motion
+                        name: Backyard
+                        icon: mdi:motion-sensor
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.backyard_motion', 'on') else 'grey' }}
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.doorbell_motion
+                        name: Doorbell
+                        icon: mdi:doorbell
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.doorbell_motion', 'on') else 'grey' }}
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.g8v1_gh02_2503_3rh3_motion
+                        name: Living Room
+                        icon: mdi:motion-sensor
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.g8v1_gh02_2503_3rh3_motion', 'on') else 'grey' }}
+                      - type: custom:mushroom-entity-card
+                        entity: binary_sensor.tilt_camera_motion
+                        name: Tilt
+                        icon: mdi:motion-sensor
+                        icon_color: >
+                          {{ 'red' if is_state('binary_sensor.tilt_camera_motion', 'on') else 'grey' }}
+
+              # Alert toggles
+              - type: vertical-stack
+                cards:
+                  - type: custom:mushroom-title-card
+                    title: Alert Settings
+                    subtitle: "Outdoor: dark or away · Indoor: away only"
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_driveway
+                        name: Driveway
+                        icon: mdi:cctv
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_driveway', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_rear_driveway
+                        name: Rear Drive
+                        icon: mdi:cctv
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_rear_driveway', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_backyard
+                        name: Backyard
+                        icon: mdi:cctv
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_backyard', 'on') else 'red' }}
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_doorbell
+                        name: Doorbell
+                        icon: mdi:doorbell
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_doorbell', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_lr
+                        name: Living Room
+                        icon: mdi:sofa
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_lr', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_cam_tilt
+                        name: Tilt
+                        icon: mdi:cctv
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_cam_tilt', 'on') else 'red' }}
+
+              # Snooze controls
+              - type: vertical-stack
+                cards:
+                  - type: custom:mushroom-title-card
+                    title: Snooze Outdoor Alerts
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Driveway 1h
+                        icon: mdi:alarm-snooze
+                        icon_color: >
+                          {{ 'orange' if state_attr('input_datetime.snooze_cam_driveway', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_driveway, duration_minutes: 60 }
+                      - type: custom:mushroom-template-card
+                        primary: Rear 1h
+                        icon: mdi:alarm-snooze
+                        icon_color: >
+                          {{ 'orange' if state_attr('input_datetime.snooze_cam_rear_driveway', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_rear_driveway, duration_minutes: 60 }
+                      - type: custom:mushroom-template-card
+                        primary: Backyard 1h
+                        icon: mdi:alarm-snooze
+                        icon_color: >
+                          {{ 'orange' if state_attr('input_datetime.snooze_cam_backyard', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_backyard, duration_minutes: 60 }
+                      - type: custom:mushroom-template-card
+                        primary: Doorbell 1h
+                        icon: mdi:alarm-snooze
+                        icon_color: >
+                          {{ 'orange' if state_attr('input_datetime.snooze_cam_doorbell', 'timestamp') | float(0) > now().timestamp() else 'green' }}
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_doorbell, duration_minutes: 60 }
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Driveway 4h
+                        icon: mdi:alarm-snooze
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_driveway, duration_minutes: 240 }
+                      - type: custom:mushroom-template-card
+                        primary: Rear 4h
+                        icon: mdi:alarm-snooze
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_rear_driveway, duration_minutes: 240 }
+                      - type: custom:mushroom-template-card
+                        primary: Backyard 4h
+                        icon: mdi:alarm-snooze
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_backyard, duration_minutes: 240 }
+                      - type: custom:mushroom-template-card
+                        primary: Doorbell 4h
+                        icon: mdi:alarm-snooze
+                        tap_action:
+                          action: call-service
+                          service: script.snooze_automation
+                          service_data: { snooze_id: cam_doorbell, duration_minutes: 240 }
+                  - type: entities
+                    title: Signal Strength (dBm)
+                    entities:
+                      - entity: sensor.blink_driveway_wi_fi_signal_strength
+                        name: Driveway
+                        icon: mdi:wifi
+                      - entity: sensor.blink_rear_driveway_wi_fi_signal_strength
+                        name: Rear Driveway
+                        icon: mdi:wifi
+                      - entity: sensor.blink_backyard_wi_fi_signal_strength
+                        name: Backyard
+                        icon: mdi:wifi
+                      - entity: sensor.blink_doorbell_wi_fi_signal_strength
+                        name: Doorbell
+                        icon: mdi:wifi-off
+                      - entity: sensor.blink_g8v1_gh02_2503_3rh3_wi_fi_signal_strength
+                        name: Living Room
+                        icon: mdi:wifi
+                      - entity: sensor.blink_tilt_camera_wi_fi_signal_strength
+                        name: Tilt Camera
+                        icon: mdi:wifi-off
+
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VIEW 3 — GARDEN
+  # Irrigation · Soil Moisture · Alerts
+  # ═══════════════════════════════════════════════════════════════════
+  - title: Garden
+    path: garden
+    icon: mdi:sprinkler-variant
+    panel: true
+    cards:
+      - type: vertical-stack
+        cards:
+
+          # ── Status bar ────────────────────────────────────────────
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.riley_hollis', 'home') else 'red' }}
+                content: >
+                  Riley · {{ states('person.riley_hollis') | title }}
+              - type: template
+                icon: mdi:account
+                icon_color: >
+                  {{ 'green' if is_state('person.cassandra_quinlan', 'home') else 'red' }}
+                content: >
+                  Casey · {{ states('person.cassandra_quinlan') | title }}
+              - type: template
+                icon: mdi:clock-outline
+                icon_color: blue
+                content: >
+                  {{ now().strftime('%-I:%M %p') }}  ·  {{ now().strftime('%a %b %-d') }}
+
+          # ── 3-Column Layout ───────────────────────────────────────
+          - type: horizontal-stack
+            cards:
+
+              # ── LEFT: Irrigation ──────────────────────────────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    title: Irrigation Zones
+                    subtitle: Tap zone to see controls
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Trees
+                        secondary: >
+                          {% if is_state('switch.trees_valve', 'on') %}
+                            Open · {{ states('sensor.trees_valve_flow') | round(1) }} L/min
+                          {% elif states('switch.trees_valve') in ['unavailable', 'unknown'] %}
+                            (no valve yet)
+                          {% else %}
+                            {% set last = states('input_datetime.irrigation_trees_last_run') %}
+                            {% if last not in ('unknown', 'unavailable') %}
+                              last {{ as_datetime(last) | as_local | as_timestamp | timestamp_custom('%-m/%-d %-I:%M %p') }}
+                            {% else %}never run{% endif %}
+                          {% endif %}
+                        icon: mdi:tree
+                        icon_color: >
+                          {{ 'green' if is_state('switch.trees_valve', 'on') else 'disabled' }}
+                        badge_icon: >
+                          {% if is_state('switch.trees_valve', 'on') %}mdi:water{% endif %}
+                        badge_color: blue
+                        tap_action:
+                          action: navigate
+                          navigation_path: "#irrigation_trees"
+                      - type: custom:mushroom-template-card
+                        primary: Sprinklers
+                        secondary: >
+                          {% if is_state('switch.sprinklers_valve', 'on') %}
+                            Open · {{ states('sensor.sprinklers_valve_flow') | round(1) }} L/min
+                          {% elif states('switch.sprinklers_valve') in ['unavailable', 'unknown'] %}
+                            (no valve yet)
+                          {% else %}
+                            {% set last = states('input_datetime.irrigation_sprinklers_last_run') %}
+                            {% if last not in ('unknown', 'unavailable') %}
+                              last {{ as_datetime(last) | as_local | as_timestamp | timestamp_custom('%-m/%-d %-I:%M %p') }}
+                            {% else %}never run{% endif %}
+                          {% endif %}
+                        icon: mdi:sprinkler
+                        icon_color: >
+                          {{ 'blue' if is_state('switch.sprinklers_valve', 'on') else 'disabled' }}
+                        badge_icon: >
+                          {% if is_state('switch.sprinklers_valve', 'on') %}mdi:water{% endif %}
+                        badge_color: blue
+                        tap_action:
+                          action: navigate
+                          navigation_path: "#irrigation_sprinklers"
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-template-card
+                        primary: Utility
+                        secondary: >
+                          {% if is_state('switch.utility_valve', 'on') %}
+                            Open
+                          {% elif states('switch.utility_valve') in ['unavailable', 'unknown'] %}
+                            (no valve yet)
+                          {% else %}Closed · manual{% endif %}
+                        icon: mdi:water-pump
+                        icon_color: >
+                          {{ 'cyan' if is_state('switch.utility_valve', 'on') else 'disabled' }}
+                        tap_action:
+                          action: navigate
+                          navigation_path: "#irrigation_utility"
+                      - type: custom:mushroom-template-card
+                        primary: Stop All
+                        secondary: >
+                          {% set any_open = is_state('switch.trees_valve', 'on') or
+                             is_state('switch.sprinklers_valve', 'on') or
+                             is_state('switch.utility_valve', 'on') %}
+                          {{ 'Zones running!' if any_open else 'All zones closed' }}
+                        icon: mdi:stop-circle
+                        icon_color: >
+                          {% set any_open = is_state('switch.trees_valve', 'on') or
+                             is_state('switch.sprinklers_valve', 'on') or
+                             is_state('switch.utility_valve', 'on') %}
+                          {{ 'red' if any_open else 'disabled' }}
+                        tap_action:
+                          action: call-service
+                          service: script.stop_all_irrigation
+
+                  - type: custom:mushroom-title-card
+                    title: Schedule Settings
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.irrigation_sprinklers_enabled
+                        name: Sprinklers
+                        icon: mdi:sprinkler
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.irrigation_trees_enabled
+                        name: Trees
+                        icon: mdi:tree
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.irrigation_rain_skip
+                        name: Rain Skip
+                        icon: mdi:weather-rainy
+
+                  - type: entities
+                    entities:
+                      - entity: input_datetime.irrigation_sprinklers_last_run
+                        name: Sprinklers last run
+                        icon: mdi:clock-check
+                      - entity: input_datetime.irrigation_trees_last_run
+                        name: Trees last run
+                        icon: mdi:clock-check
+
+              # ── CENTER: Soil Moisture Status ──────────────────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    title: Soil Moisture
+                    subtitle: Smart Soil Sensor Gen2 · alerts fire after 30 min below threshold
+
+                  - type: custom:mushroom-template-card
+                    primary: Fescue Grass
+                    secondary: >
+                      {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}Unknown
+                      {% elif m < 25 %}{{ m | round(1) }}% — needs water!
+                      {% elif m < 30 %}{{ m | round(1) }}% — low
+                      {% elif m <= 50 %}{{ m | round(1) }}% — healthy
+                      {% else %}{{ m | round(1) }}% — saturated
+                      {% endif %}
+                    icon: mdi:grass
+                    icon_color: >
+                      {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}grey{% elif m < 25 %}red{% elif m < 30 %}orange{% elif m <= 50 %}green{% else %}blue{% endif %}
+                    badge_icon: >
+                      {% set m = states('sensor.fescue_grass_soil_moisture_soil_moisture') | float(-1) %}
+                      {{ 'mdi:alert' if m >= 0 and m < 25 else '' }}
+                    badge_color: red
+
+                  - type: custom:mushroom-template-card
+                    primary: Green Giant
+                    secondary: >
+                      {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}Unknown
+                      {% elif m < 20 %}{{ m | round(1) }}% — needs water!
+                      {% elif m < 35 %}{{ m | round(1) }}% — low
+                      {% elif m <= 50 %}{{ m | round(1) }}% — healthy
+                      {% else %}{{ m | round(1) }}% — saturated
+                      {% endif %}
+                    icon: mdi:pine-tree
+                    icon_color: >
+                      {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}grey{% elif m < 20 %}red{% elif m < 35 %}orange{% elif m <= 50 %}green{% else %}blue{% endif %}
+                    badge_icon: >
+                      {% set m = states('sensor.green_giant_soil_sensor_soil_moisture') | float(-1) %}
+                      {{ 'mdi:alert' if m >= 0 and m < 20 else '' }}
+                    badge_color: red
+
+                  - type: custom:mushroom-template-card
+                    primary: Indoor Tree (Mass Cane)
+                    secondary: >
+                      {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}Unknown
+                      {% elif m < 10 %}{{ m | round(1) }}% — needs water!
+                      {% elif m < 15 %}{{ m | round(1) }}% — low
+                      {% elif m <= 25 %}{{ m | round(1) }}% — healthy
+                      {% else %}{{ m | round(1) }}% — well watered
+                      {% endif %}
+                    icon: mdi:tree-outline
+                    icon_color: >
+                      {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+                      {% if m < 0 %}grey{% elif m < 10 %}red{% elif m < 15 %}orange{% elif m <= 25 %}green{% else %}blue{% endif %}
+                    badge_icon: >
+                      {% set m = states('sensor.indoor_tree_soil_moisture_soil_moisture') | float(-1) %}
+                      {{ 'mdi:alert' if m >= 0 and m < 10 else '' }}
+                    badge_color: red
+
+                  - type: custom:mushroom-title-card
+                    title: Low Moisture Alerts
+                    subtitle: "Fescue <25%  ·  Green Giant <20%  ·  Indoor Tree <10%"
+
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_plant_fescue
+                        name: Fescue
+                        icon: mdi:grass
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_plant_fescue', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_plant_green_giant
+                        name: Green Giant
+                        icon: mdi:pine-tree
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_plant_green_giant', 'on') else 'red' }}
+                      - type: custom:mushroom-entity-card
+                        entity: input_boolean.automation_plant_indoor_tree
+                        name: Indoor Tree
+                        icon: mdi:tree-outline
+                        icon_color: >
+                          {{ 'green' if is_state('input_boolean.automation_plant_indoor_tree', 'on') else 'red' }}
+
+                  - type: entities
+                    title: Sensor Details
+                    entities:
+                      - entity: sensor.fescue_grass_soil_moisture_soil_moisture
+                        name: Fescue Moisture
+                        icon: mdi:water-percent
+                      - entity: sensor.fescue_grass_soil_moisture_temperature
+                        name: Fescue Temp
+                        icon: mdi:thermometer
+                      - entity: sensor.green_giant_soil_sensor_soil_moisture
+                        name: Green Giant Moisture
+                        icon: mdi:water-percent
+                      - entity: sensor.green_giant_soil_sensor_temperature
+                        name: Green Giant Temp
+                        icon: mdi:thermometer
+                      - entity: sensor.indoor_tree_soil_moisture_soil_moisture
+                        name: Indoor Tree Moisture
+                        icon: mdi:water-percent
+                      - entity: sensor.indoor_tree_soil_moisture_temperature
+                        name: Indoor Tree Temp
+                        icon: mdi:thermometer
+
+              # ── RIGHT: Moisture Charts ────────────────────────────
+              - type: vertical-stack
+                cards:
+
+                  - type: custom:mushroom-title-card
+                    subtitle: "Fescue — healthy: 30–50%  ·  alert: <25%"
+
+                  - type: statistics-graph
+                    entities:
+                      - entity: sensor.fescue_grass_soil_moisture_soil_moisture
+                        name: "Moisture %"
+                      - entity: input_number.plant_fescue_target_low
+                        name: "Low (30%)"
+                      - entity: input_number.plant_fescue_target_high
+                        name: "High (50%)"
+                    stat_types:
+                      - mean
+                    period: hour
+                    days_to_show: 7
+
+                  - type: custom:mushroom-title-card
+                    subtitle: "Green Giant — healthy: 35–50%  ·  alert: <20%"
+
+                  - type: statistics-graph
+                    entities:
+                      - entity: sensor.green_giant_soil_sensor_soil_moisture
+                        name: "Moisture %"
+                      - entity: input_number.plant_green_giant_target_low
+                        name: "Low (35%)"
+                      - entity: input_number.plant_green_giant_target_high
+                        name: "High (50%)"
+                    stat_types:
+                      - mean
+                    period: hour
+                    days_to_show: 7
+
+                  - type: custom:mushroom-title-card
+                    subtitle: "Indoor Tree — healthy: 15–25%  ·  alert: <10%"
+
+                  - type: statistics-graph
+                    entities:
+                      - entity: sensor.indoor_tree_soil_moisture_soil_moisture
+                        name: "Moisture %"
+                      - entity: input_number.plant_indoor_tree_target_low
+                        name: "Low (15%)"
+                      - entity: input_number.plant_indoor_tree_target_high
+                        name: "High (25%)"
+                    stat_types:
+                      - mean
+                    period: hour
+                    days_to_show: 7
